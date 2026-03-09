@@ -4,7 +4,7 @@
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Vercel      │────►│   Render      │────►│  Neon / RDS   │
+│   Netlify     │────►│   Render      │────►│  Neon / RDS   │
 │   (Frontend)  │     │   (Backend)   │     │  (PostgreSQL) │
 │   Next.js 16  │     │   FastAPI     │     │              │
 └──────────────┘     └──────┬───────┘     └──────────────┘
@@ -158,40 +158,74 @@ curl https://freight-hub-backend.onrender.com/api/v1/health
 
 ---
 
-## Step 3: Deploy Frontend (Vercel)
+## Step 3: Deploy Frontend (Netlify)
 
-### Option A: Vercel CLI
+Next.js on Netlify requires the `@netlify/plugin-nextjs` adapter, which handles SSR, API routes, and image optimization automatically.
 
-```bash
-# Install Vercel CLI
-npm install -g vercel
+### netlify.toml (add to `frontend/` directory)
 
-# Deploy
-cd frontend
-vercel
+Create `frontend/netlify.toml` with the following content:
 
-# Set environment variables
-vercel env add NEXT_PUBLIC_API_URL    # Value: https://freight-hub-backend.onrender.com/api/v1
-vercel env add NEXT_PUBLIC_ORG_ID    # Value: 00000000-0000-0000-0000-000000000001
+```toml
+[build]
+  base    = "frontend"
+  command = "npm run build"
+  publish = ".next"
 
-# Redeploy with env vars
-vercel --prod
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
 ```
 
-### Option B: Vercel Dashboard
+Install the Netlify Next.js plugin as a dev dependency:
 
-1. Go to [vercel.com](https://vercel.com)
-2. Import Git Repository
-3. Set root directory to `frontend`
-4. Framework Preset: **Next.js**
-5. Add environment variables:
+```bash
+cd frontend
+npm install -D @netlify/plugin-nextjs
+```
+
+---
+
+### Option A: Netlify CLI
+
+```bash
+# Install Netlify CLI
+npm install -g netlify-cli
+
+# Authenticate
+ntl login
+
+# Link to a new or existing Netlify site (run from repo root)
+ntl init
+
+# Set environment variables
+ntl env:set NEXT_PUBLIC_API_URL "https://freight-hub-backend.onrender.com/api/v1"
+ntl env:set NEXT_PUBLIC_ORG_ID  "00000000-0000-0000-0000-000000000001"
+
+# Deploy to production
+ntl deploy --prod
+```
+
+### Option B: Netlify Dashboard
+
+1. Go to [netlify.com](https://netlify.com) and sign in (GitHub login recommended)
+2. Click **Add new site** → **Import an existing project**
+3. Connect your GitHub repository (`frieght-document-intelligence-hub`)
+4. Configure build settings:
+   - **Base directory**: `frontend`
+   - **Build command**: `npm run build`
+   - **Publish directory**: `frontend/.next`
+5. Expand **Environment variables** and add:
    - `NEXT_PUBLIC_API_URL` = `https://freight-hub-backend.onrender.com/api/v1`
    - `NEXT_PUBLIC_ORG_ID` = `00000000-0000-0000-0000-000000000001`
-6. Deploy
+6. Click **Deploy site**
+7. Your frontend URL will be: `https://your-site.netlify.app`
 
 ### Verify Frontend
 
-Visit `https://your-app.vercel.app` — you should see the dashboard.
+Visit `https://your-site.netlify.app` — you should see the dashboard.
 
 ---
 
@@ -202,7 +236,7 @@ After deploying the frontend, update the backend's CORS setting in the Render da
 1. Go to your Render web service → **Environment**
 2. Update `CORS_ORIGINS`:
    ```
-   ["https://your-app.vercel.app"]
+   ["https://your-site.netlify.app"]
    ```
 3. Click **Save Changes** — Render will auto-redeploy with the updated CORS configuration.
 
@@ -240,8 +274,8 @@ After deploying the frontend, update the backend's CORS setting in the Render da
 - [ ] Demo organization seeded
 - [ ] Backend deployed on Render with all env vars set
 - [ ] Health check passing (`/api/v1/health`)
-- [ ] Frontend deployed on Vercel with correct `NEXT_PUBLIC_API_URL`
-- [ ] CORS updated to allow Vercel frontend domain
+- [ ] Frontend deployed on Netlify with correct `NEXT_PUBLIC_API_URL`
+- [ ] CORS updated to allow Netlify frontend domain
 - [ ] Upload a test document end-to-end
 - [ ] Verify extraction pipeline works
 - [ ] Verify dashboard loads documents
@@ -259,9 +293,10 @@ After deploying the frontend, update the backend's CORS setting in the Render da
 
 ### Frontend can't reach backend
 - Verify `NEXT_PUBLIC_API_URL` doesn't have a trailing slash
-- Check `CORS_ORIGINS` includes the exact frontend URL (with `https://`)
+- Check `CORS_ORIGINS` includes the exact Netlify URL (with `https://`)
 - Check Render logs for CORS errors
 - Ensure the Render service is awake (ping the health endpoint first)
+- Confirm `@netlify/plugin-nextjs` is installed and `netlify.toml` is committed
 
 ### Extraction fails
 - Verify `ANTHROPIC_API_KEY` is valid and has credits
@@ -282,6 +317,6 @@ If this application needed to handle 100x the current load:
 1. **Database**: Add read replicas, partition by date range, add connection pooling (PgBouncer)
 2. **File storage**: Move from local filesystem to S3/R2 (abstraction already in place)
 3. **Extraction**: Add a task queue (Celery/Redis) for async extraction, not blocking the API response
-4. **Frontend**: Already serverless on Vercel — scales automatically
+4. **Frontend**: Already serverless on Netlify — scales automatically via CDN edge nodes
 5. **Backend**: Scale up Render instance type or add horizontal replicas behind a load balancer
 6. **Caching**: Add Redis for frequently accessed documents and analytics queries
