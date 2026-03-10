@@ -21,8 +21,21 @@
 
 1. Go to [neon.tech](https://neon.tech) and create a free project
 2. Create a database named `freight_hub`
-3. Copy the connection string (format: `postgresql://user:pass@host/freight_hub?sslmode=require`)
-4. Convert for asyncpg: replace `postgresql://` with `postgresql+asyncpg://`
+3. Copy the connection string from Neon — it will look like:
+   ```
+   postgresql://user:pass@host/neondb?sslmode=require&channel_binding=require
+   ```
+4. Convert it for asyncpg — **two changes required**:
+   - Replace `postgresql://` with `postgresql+asyncpg://`
+   - Replace `?sslmode=require` with `?ssl=require` (asyncpg uses `ssl=`, not `sslmode=`)
+   - Drop `&channel_binding=require` — asyncpg doesn't support this param
+   
+   Final format:
+   ```
+   postgresql+asyncpg://user:pass@host/neondb?ssl=require
+   ```
+
+> **⚠️ Common mistake**: Pasting the Neon URL as-is with `sslmode=require` will cause a `TypeError: connect() got an unexpected keyword argument 'sslmode'` crash. Always use `ssl=require` with asyncpg.
 
 **Note**: Render also offers a managed PostgreSQL add-on if you prefer keeping everything in one place (free tier available).
 
