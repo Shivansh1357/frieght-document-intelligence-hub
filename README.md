@@ -294,70 +294,26 @@ Interactive API docs: [https://frieght-document-intelligence-hub.onrender.com/do
 
 ```
 frieght-document-intelligence-hub/
-├── README.md                     # This file
-├── CLAUDE.md                     # AI coding agent context & conventions
-├── progress.md                   # Development tracker & deliverable checklist
-├── .gitignore
-├── docs/
-│   ├── PRD.md                    # Product Requirements Document
-│   ├── ARCHITECTURE.md           # System architecture & pipeline diagrams
-│   ├── DEPLOYMENT.md             # Deployment guide (Netlify + Render + Neon)
-│   ├── DEMO.md                   # Demo walkthrough script & Q&A prep
-│   ├── RUN_BOOK.md               # Operational runbook (errors, env vars, health checks)
-│   └── adr/
-│       ├── 001-backend-framework.md
-│       ├── 002-frontend-stack.md
-│       ├── 003-database-schema.md
-│       ├── 004-claude-api-integration.md
-│       ├── 005-deployment-architecture.md
-│       └── 006-bonus-features.md
-├── backend/                      # FastAPI Python backend
-│   ├── app/
-│   │   ├── main.py               # App factory + lifespan (auto-migrations + org seed)
-│   │   ├── config.py             # Pydantic settings (env vars)
-│   │   ├── dependencies.py       # DbDep, OrgIdDep typed injections
-│   │   ├── api/v1/
-│   │   │   ├── router.py         # Registers all route prefixes
-│   │   │   ├── documents.py      # Upload, CRUD, duplicate-check, reextract
-│   │   │   ├── analytics.py      # Accuracy, corrections, field-breakdown
-│   │   │   ├── comparison.py     # Side-by-side document comparison
-│   │   │   ├── corrections.py    # Field correction endpoints
-│   │   │   ├── copilot.py        # AI copilot chat + streaming (SSE)
-│   │   │   ├── export.py         # CSV export (all docs + per-document)
-│   │   │   ├── extraction.py     # Re-extraction trigger
-│   │   │   └── health.py         # Health check
-│   │   ├── services/
-│   │   │   ├── document_service.py
-│   │   │   ├── extraction_service.py
-│   │   │   ├── correction_service.py
-│   │   │   ├── analytics_service.py
-│   │   │   └── comparison_service.py
-│   │   ├── models/               # SQLAlchemy ORM (organization, document, extracted_data,
-│   │   │   │                     #   line_item, extraction_field, field_correction)
-│   │   ├── schemas/              # Pydantic request/response schemas
-│   │   ├── core/
-│   │   │   ├── claude_client.py  # Claude vision API client (retry, error classification)
-│   │   │   ├── pdf_processor.py  # PDF → images (300 DPI, enhance, orient)
-│   │   │   ├── prompts.py        # Extraction prompt engineering
-│   │   │   └── file_storage.py   # Storage abstraction (local → S3-swappable)
-│   │   └── db/session.py         # Async SQLAlchemy session factory
-│   ├── alembic/                  # Migration scripts
-│   ├── alembic.ini
-│   ├── tests/                    # pytest suite (conftest.py)
-│   ├── seed_demo_data.sql        # Demo data seed script
-│   ├── Dockerfile
-│   ├── requirements.txt
+├── docs/                   # PRD, ARCHITECTURE, DEPLOYMENT, RUN_BOOK, DEMO, 6 ADRs
+├── backend/                # FastAPI · Python 3.11+ · SQLAlchemy · asyncpg
+│   ├── app/api/v1/         # 8 route modules (documents, extraction, corrections, analytics, comparison, export, copilot, health)
+│   ├── app/services/       # Business logic layer (5 services)
+│   ├── app/models/         # SQLAlchemy ORM (6 tables)
+│   ├── app/core/           # Claude client, PDF processor, prompts, file storage
+│   ├── alembic/            # Database migrations
+│   ├── Dockerfile          # Python 3.13-slim + poppler-utils
 │   └── .env.example
-├── frontend/                     # Next.js 16 TypeScript frontend
-│   ├── src/
-│   │   ├── app/                  # App Router pages
-│   │   ├── components/           # UI components
-│   │   ├── hooks/                # React Query hooks
-│   │   └── lib/                  # API client, types, utilities
-│   ├── package.json
+├── frontend/               # Next.js 16 · TypeScript · Tailwind v4 · shadcn/ui
+│   ├── src/app/            # 5 pages (dashboard, upload, document detail, analytics, compare)
+│   ├── src/components/     # 10 component groups (layout, documents, extraction, corrections, upload, analytics, comparison, ai-copilot, onboarding, ui)
+│   ├── src/hooks/          # React Query hooks (documents, upload, user-profile)
+│   ├── src/lib/            # API client, types, utils, copilot context, field validations
+│   ├── netlify.toml        # Netlify build config
 │   └── .env.local.example
-└── test-documents/               # Sample freight documents for testing
+└── test-documents/         # Sample freight docs for edge case testing
 ```
+
+> Full file-level breakdown: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
@@ -384,40 +340,27 @@ frieght-document-intelligence-hub/
 
 ## Documentation
 
+| Document | Description |
+|----------|-------------|
+| [**PRD.md**](docs/PRD.md) | Product Requirements Document — user personas, deliverable specs, test cases, bonus features. Written before coding as the planning artifact. |
+| [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) | System architecture — layered backend diagram, extraction pipeline flow, frontend component tree, database schema. |
+| [**DEPLOYMENT.md**](docs/DEPLOYMENT.md) | Deployment runbook — step-by-step for Neon (DB) → Render (backend) → Netlify (frontend), env var reference, production checklist. |
+| [**RUN_BOOK.md**](docs/RUN_BOOK.md) | Operational guide — startup sequence, common error diagnoses (migration failures, Anthropic 502s, FK constraint errors), health checks, re-seeding. |
+| [**DEMO.md**](docs/DEMO.md) | Live walkthrough script — 10-min demo flow, architecture deep-dive talking points, curveball Q&A prep. |
+
 <details>
-<summary><strong>📐 Architecture Decision Records (6 ADRs)</strong></summary>
+<summary><strong>Architecture Decision Records (6 ADRs)</strong></summary>
 
 Each decision documented with: the problem, options considered, the choice made, and rationale.
 
 | ADR | Decision | TL;DR |
 |-----|----------|-------|
 | [ADR-001](docs/adr/001-backend-framework.md) | Backend: FastAPI (Python) | PDF/image ecosystem + Anthropic SDK maturity outweigh two-language cost |
-| [ADR-002](docs/adr/002-frontend-stack.md) | Frontend: Next.js 16 + shadcn/ui | Copy-paste component ownership, App Router RSC, zero dep risk |
+| [ADR-002](docs/adr/002-frontend-stack.md) | Frontend: Next.js 16 + shadcn/ui | Copy-paste component ownership, base-ui primitives, Tailwind v4 |
 | [ADR-003](docs/adr/003-database-schema.md) | DB: Relational columns, not JSON | Typed columns enable per-field indexing, confidence joins, compliance queries |
 | [ADR-004](docs/adr/004-claude-api-integration.md) | AI: Single multi-page Claude call | Full document context in one call catches cross-page relationships |
 | [ADR-005](docs/adr/005-deployment-architecture.md) | Deploy: Netlify + Render + Neon | Free-tier, prod-grade, minimal ops overhead |
 | [ADR-006](docs/adr/006-bonus-features.md) | Bonus: 7 compounding features | Each feature multiplies value of the others (see Bonus Features section) |
-
-</details>
-
-<details>
-<summary><strong>📄 PRD — Product Requirements Document</strong></summary>
-
-[docs/PRD.md](docs/PRD.md) — Full requirements including user stories, acceptance criteria, data model specs, and API contracts. Written before coding as a planning artifact.
-
-</details>
-
-<details>
-<summary><strong>📘 RUN BOOK — Operational Guide</strong></summary>
-
-[docs/RUN_BOOK.md](docs/RUN_BOOK.md) — Operational runbook: env variable reference, startup sequence, common error diagnoses (migration failures, Anthropic 502s, FK constraint errors), health checks, and re-seeding procedures.
-
-</details>
-
-<details>
-<summary><strong>🏗 Architecture Deep-Dive</strong></summary>
-
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Upload/extraction pipeline sequence, database schema, multi-tenant isolation model, and component interaction map.
 
 </details>
 

@@ -59,9 +59,13 @@ API Routes (app/api/v1/*.py)
 
 **API routers** registered in `app/api/v1/router.py` under prefix `/api/v1`:
 - `/documents` — CRUD, upload, reextract, check-duplicate
+- `/extraction` — get extraction results
+- `/corrections` — immutable correction inserts + history
 - `/analytics` — accuracy, corrections, field-breakdown
 - `/comparison` — side-by-side document comparison
-- `/extraction`, `/corrections`, `/health`
+- `/export` — CSV export (bulk + per-document)
+- `/copilot` — AI chat with DB query execution (streaming SSE)
+- `/health` — health check
 
 **Extraction pipeline** (`app/services/extraction_service.py`):
 1. Validate file (empty, corrupt, password-protected PDF detection) in `app/core/pdf_processor.py`
@@ -85,7 +89,7 @@ components/
   documents/            # DocumentTable, StatusBadge, columns
   extraction/           # ExtractionForm, FieldInput, ConfidenceBadge, LineItemsTable (editable)
   corrections/          # CorrectionTimeline
-  upload/               # Dropzone
+  upload/               # Dropzone, upload queue with duplicate detection
   ui/                   # shadcn/ui primitives (24+ components incl. ConfirmDialog)
   ai-copilot/           # CopilotWidget (floating AI chat)
   onboarding/           # WelcomeDialog, AppTour
@@ -95,6 +99,7 @@ lib/
   types.ts              # TypeScript interfaces matching backend response shapes
   user-store.ts         # localStorage user profile with DiceBear avatar styles
   copilot-context.ts    # data-copilot-context helper for AI widget
+  field-validations.ts  # Zod validators for extraction field corrections
 ```
 
 **Data fetching**: React Query (`@tanstack/react-query`) for all server state. API client in `lib/api.ts` sends `X-Org-Id` header on every request. Frontend path alias: `@/*` maps to `src/*`.
@@ -117,6 +122,10 @@ All tables have `org_id` foreign key. `TimestampMixin` in `app/models/base.py` a
 - Frontend types in `lib/types.ts` must match backend Pydantic schemas in `app/schemas/` — keep these in sync
 - Backend `.env` contains `ANTHROPIC_API_KEY` and `DATABASE_URL` (never commit)
 - Poppler (`poppler-utils`) must be installed for PDF processing (`brew install poppler` on macOS)
+- Alembic migrations auto-run on startup via subprocess in `app/main.py` (avoids nested event loop)
+- Demo organization auto-seeded on first startup (`DEFAULT_ORG_ID=00000000-0000-0000-0000-000000000001`)
+- Backend API values that can be `null` (e.g. `average_confidence`) — frontend must always null-check before calling `.toFixed()` or `.toLocaleString()`
+- shadcn/ui v4 uses `@base-ui/react` — `render` prop instead of `asChild`, `showCloseButton={false}` on Dialog
 
 ## UI/UX Patterns
 
@@ -134,7 +143,7 @@ All tables have `org_id` foreign key. `TimestampMixin` in `app/models/base.py` a
 - CSS animations: `animate-float-slow`, `animate-float-slow-reverse` for background orbs
 
 ### Component Patterns
-- shadcn/ui uses `@base-ui/react` (NOT radix-ui) — use `render` prop instead of `asChild`
+- shadcn/ui v4 uses `@base-ui/react` (NOT radix-ui) — use `render` prop instead of `asChild`
 - `ConfirmDialog` component for destructive actions (approve, re-extract)
 - DiceBear avatars (`notionists`, `adventurer`, `avataaars` styles) via `lib/user-store.ts`
 - User profile stored in localStorage with avatar style selection
@@ -142,5 +151,16 @@ All tables have `org_id` foreign key. `TimestampMixin` in `app/models/base.py` a
 - Document table rows are clickable (navigate to detail)
 - Image document previews display full-width with `object-contain` and `maxHeight: 80vh`
 
+### Onboarding
+- `WelcomeDialog` — first-run name capture, triggers optional `AppTour`
+- `AppTour` — 8-step guided tour across pages (dashboard → upload → analytics → compare), redirects to `/` on completion
+
 ### Git
 - Single monorepo git at project root (not separate repos per project)
+
+## Deployment
+
+- **Frontend**: Netlify (`frontend/netlify.toml` + `@netlify/plugin-nextjs`)
+- **Backend**: Render (Docker, auto-detects `backend/Dockerfile`)
+- **Database**: Neon PostgreSQL (serverless, `ssl=require` for asyncpg — NOT `sslmode=require`)
+- See `docs/DEPLOYMENT.md` for full runbook

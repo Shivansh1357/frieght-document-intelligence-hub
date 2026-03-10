@@ -247,16 +247,23 @@ export function AppTour({ active, onComplete }: AppTourProps) {
     };
   }, [active, currentStep, pathname, router, updatePosition]);
 
+  const finishTour = useCallback(() => {
+    onComplete();
+    if (pathname !== "/") {
+      router.push("/");
+    }
+  }, [onComplete, pathname, router]);
+
   const handleNext = () => {
     if (currentStep < TOUR_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      onComplete();
+      finishTour();
     }
   };
 
   const handleSkip = () => {
-    onComplete();
+    finishTour();
   };
 
   if (!active) return null;
