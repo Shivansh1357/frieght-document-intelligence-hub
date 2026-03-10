@@ -1,8 +1,8 @@
 import logging
+import os
+import sys
 from contextlib import asynccontextmanager
 
-from alembic import command
-from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,24 +13,41 @@ logger = logging.getLogger(__name__)
 settings = Settings()
 
 
-def _run_migrations() -> None:
-    """Run Alembic migrations programmatically using the live DATABASE_URL."""
-    try:
-        alembic_cfg = Config("alembic.ini")
-        # Override the URL from settings so the env var always wins over alembic.ini
-        alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-        command.upgrade(alembic_cfg, "head")
-        logger.info("Database migrations applied successfully.")
-    except Exception as e:
-        logger.error("Migration failed: %s", e)
-        raise
+async def _run_migrations() -> None:
+    """Run 'alembic upgrade head' as a subprocess.
+
+    Running Alembic in-process from an async context is problematic because
+    alembic/env.py uses asyncio.run() which cannot be nested inside
+    FastAPI's already-running event loop. A subprocess sidesteps this entirely.
+    """
+    import asyncio
+
+    env = {**os.environ, "DATABASE_URL": settings.database_url}
+    alembic_bin = os.path.join(os.path.dirname(sys.executable), "alembic")
+
+    proc = await asyncio.create_subprocess_exec(
+        alembic_bin, "upgrade", "head",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+        env=env,
+    )
+    stdout, _ = await proc.communicate()
+
+    if stdout:
+        for line in stdout.decode().splitlines():
+            logger.info("[alembic] %s", line)
+
+    if proc.returncode != 0:
+        raise RuntimeError(f"alembic upgrade head failed (exit {proc.returncode})")
+
+    logger.info("Database migrations applied successfully.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
     # Startup — run migrations before accepting requests
-    _run_migrations()
+    await _run_migrations()
     yield
     # Shutdown
 
