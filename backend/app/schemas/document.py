@@ -14,6 +14,7 @@ class DocumentUploadResponse(BaseModel):
     status: str
     uploaded_at: datetime
     message: str = "Document uploaded successfully. Extraction will begin shortly."
+    extraction_warning: Optional[str] = None  # Populated when extraction fails with a specific reason
 
     model_config = {"from_attributes": True}
 

@@ -96,6 +96,7 @@ async def upload_document(
     doc_file_name: str = doc.file_name
 
     # Run extraction in the same session (now on a fresh transaction)
+    extraction_warning: str | None = None
     try:
         extraction_service = ExtractionService(db)
         await extraction_service.extract_document(
@@ -106,8 +107,21 @@ async def upload_document(
         )
         await db.commit()
     except Exception as e:
-        logger.error("Extraction failed for %s: %s", doc_id, str(e))
         await db.rollback()
+        err_str = str(e)
+        # Anthropic credit exhaustion — HTTP 400 with "credit balance"
+        if "credit balance" in err_str.lower() or "credit" in err_str.lower() and "too low" in err_str.lower():
+            extraction_warning = (
+                "AI extraction failed: your Anthropic API credit balance is too low. "
+                "Please add credits at console.anthropic.com and re-extract this document."
+            )
+            logger.warning("Anthropic credits exhausted for %s", doc_id)
+        elif "anthropic" in err_str.lower() or "api" in err_str.lower():
+            extraction_warning = f"AI extraction failed due to an API error. The document was saved and can be re-extracted later. ({type(e).__name__})"
+            logger.error("Anthropic API error for %s: %s", doc_id, err_str)
+        else:
+            extraction_warning = f"Extraction failed unexpectedly. The document was saved. ({type(e).__name__})"
+            logger.error("Extraction failed for %s: %s", doc_id, err_str)
 
     # Re-fetch to get latest status (uses plain uuid, not detached ORM object)
     doc_service2 = DocumentService(db)
@@ -120,6 +134,7 @@ async def upload_document(
             status="uploaded",
             uploaded_at=datetime.utcnow(),
             message="Document uploaded but could not verify status.",
+            extraction_warning=extraction_warning,
         )
 
     return DocumentUploadResponse(
@@ -129,6 +144,7 @@ async def upload_document(
         status=updated_doc.status,
         uploaded_at=updated_doc.uploaded_at,
         message=f"Document uploaded and {'extracted' if updated_doc.status == 'extracted' else 'queued for extraction'}.",
+        extraction_warning=extraction_warning,
     )
 
 

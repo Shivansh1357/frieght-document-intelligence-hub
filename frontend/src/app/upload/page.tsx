@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { Upload as UploadIcon, Eye, Plus, AlertTriangle, CheckCircle, Loader2, X, FileText, FileUp, ScanSearch, Brain, BarChart3 } from "lucide-react";
+import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/layout/page-transition";
 import { stringifyCopilotContext } from "@/lib/copilot-context";
@@ -202,6 +203,19 @@ export default function UploadPage() {
       formData.append("file", item.file);
       const result = (await api.documents.upload(formData)) as any;
       clearIntervalFor(item.localId);
+      // Show extraction warning toast if the API reported a specific failure reason
+      if (result?.extraction_warning) {
+        const isCredits = result.extraction_warning.toLowerCase().includes("credit");
+        toast.warning(result.extraction_warning, {
+          duration: 10000,
+          action: isCredits
+            ? {
+                label: "Add Credits",
+                onClick: () => window.open("https://console.anthropic.com/settings/billing", "_blank"),
+              }
+            : undefined,
+        });
+      }
       setQueue((prev) =>
         prev.map((q) =>
           q.localId === item.localId
