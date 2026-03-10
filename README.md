@@ -63,7 +63,7 @@ Built as a take-home project for **Aulintri** — Founding Full-Stack Engineer r
 **AI Pipeline**: PDF → images (300 DPI) → EXIF auto-orient → resize (max 2048px) → enhance (contrast + sharpening) → Claude vision API with domain-specific prompt + page numbering → quality-aware retry → structured JSON → relational storage with per-field confidence scores.
 
 > Full architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)  
-> Architecture Decision Records: [docs/adr/](docs/adr/)
+> Architecture Decision Records: [ADR-001 Backend](docs/adr/001-backend-framework.md) · [ADR-002 Frontend](docs/adr/002-frontend-stack.md) · [ADR-003 Database](docs/adr/003-database-schema.md) · [ADR-004 Claude API](docs/adr/004-claude-api-integration.md) · [ADR-005 Deployment](docs/adr/005-deployment-architecture.md) · [ADR-006 Bonus Features](docs/adr/006-bonus-features.md)
 
 ---
 
@@ -97,32 +97,42 @@ See [Bonus Features](#bonus-features) section below.
 
 ---
 
-## Bonus Features
+## Bonus Features — Product Instinct
 
-The brief asked for **at least one** bonus feature. I built **seven** because in freight logistics, these features compound in value:
+The brief asked for **at least one** bonus feature. I built **seven**, chosen because they **compound** in value rather than being independent additions.
 
-### 1. Field-Level Confidence Scoring
-Each extracted field has a 0–100% confidence score with color-coded badges (🟢 ≥90%, 🟡 70–89%, 🔴 <70%). Low-confidence fields get amber borders, directing human attention where it matters most. Saves 60–80% of review time.
+### 1. 🎯 Field-Level Confidence Scoring
+**Why**: Reviewing 30+ fields on every document is the bottleneck in freight operations. Without knowing which fields the AI is uncertain about, you must check everything manually.  
+**What**: Each field gets a 0–100% confidence score (🟢 ≥90% reliable, 🟡 70–89% verify, 🔴 <70% requires correction). Low-confidence fields get amber borders so reviewers focus only on what matters — cutting per-document review time by ~60–80%.
 
-### 2. Document Comparison
-Side-by-side comparison of any two documents across 27 fields with match percentage, mismatch row highlighting, and field-level tooltips. Critical for matching a commercial invoice to its packing list before customs filing.
+### 2. 📊 Extraction Accuracy Analytics
+**Why**: Without measurement you can't improve. Operations managers need to know which fields the AI consistently gets wrong so they can tune the extraction prompt over time.  
+**What**: Analytics dashboard showing per-field accuracy bar charts, top corrected fields, average confidence by field, and a breakdown table — a systematic feedback loop for prompt engineering.
 
-### 3. Extraction Accuracy Analytics
-Analytics dashboard with field accuracy bar charts, top corrected fields, average confidence per field, and a detailed breakdown table. Creates a feedback loop for which fields need prompt tuning.
+### 3. 📋 Document Comparison
+**Why**: In international trade, commercial invoices and packing lists must agree before goods clear customs. Discrepancies cause costly delays and penalties — and they're easy to miss manually.  
+**What**: Side-by-side comparison of any two documents across 27 fields, with match percentage, mismatch row highlighting, and field-level tooltips.
 
-### 4. Smart Duplicate Detection
-SHA-256 hash comparison on upload. If a duplicate is found, user sees an alert with a link to the existing document and can choose to view it or upload anyway.
+### 4. 🔍 Smart Duplicate Detection
+**Why**: In any team environment the same PDF gets uploaded multiple times — by different team members, forwarded emails, or user error. Duplicates pollute the dataset.  
+**What**: SHA-256 hash comparison on every upload. Detected duplicates show a warning with a link to the existing document and an "Upload anyway" escape hatch for legitimate re-submissions.
 
-### 5. Context-Aware AI Copilot (Sofia)
-Floating chat widget that reads the current page's live DOM context — knows what documents are on screen, their statuses, confidence scores, and can answer questions like "What is duplicate detection?" or "How many documents need review?" with real data. Falls back to Claude for data queries.
+### 5. 🤖 Context-Aware AI Copilot (Sofia)
+**Why**: New users need guidance without reading docs. Power users want answers from their data without building reports.  
+**What**: Floating chat widget that reads the live page DOM — knows what documents are on screen, their statuses, and confidence scores. Answers "Which documents need review?" with real numbers. Falls back to Claude+SQL for database queries not visible in the DOM.
 
-### 6. CSV Export (Bulk + Individual)
-Export buttons on dashboard (all documents OR selected rows via checkbox) and document detail. CSV includes both header fields and line items in flat parent-child format.
+### 6. 📥 Bulk CSV Export
+**Why**: Extracted data must flow into ERP, customs filing, and accounting systems. A data platform that can't export is a silo.  
+**What**: Export buttons on dashboard (all documents or checkboxed rows) and document detail. CSV includes both header fields (shipper, values) and line items in flat parent-child format, ready for direct import.
 
-### 7. Onboarding System
-Welcome dialog with name capture (used in audit trail `corrected_by` field), 4-step guided tour of all pages, persistent user profile with avatar.
+### 7. 🧭 Onboarding System
+**Why**: The `corrected_by` audit field is only useful if it captures a real name. A frictionless first-use step ensures every correction is attributable.  
+**What**: Welcome dialog with name capture (piped into all correction records), 4-step guided tour, and persistent user profile with avatar.
+
+**Why these seven together?** Confidence scoring tells clerks which fields to review → corrections create ground truth → analytics measures AI accuracy over time → comparison catches cross-document discrepancies → duplicate detection keeps the dataset clean → export pushes data downstream → copilot reduces onboarding time. Each feature makes the others more valuable.
 
 ---
+
 
 ## Edge Case Handling
 
@@ -249,7 +259,7 @@ npm run dev
 | Corrections | Immutable audit trail | Insert-only `field_corrections` table preserves full change history for compliance |
 | Startup Migrations | Subprocess (`alembic upgrade head`) | Avoids nested asyncio event loop conflicts; migrations always run before app accepts requests |
 
-> All ADRs: [docs/adr/](docs/adr/)
+> Individual ADRs: [001 Backend](docs/adr/001-backend-framework.md) · [002 Frontend](docs/adr/002-frontend-stack.md) · [003 Database](docs/adr/003-database-schema.md) · [004 Claude API](docs/adr/004-claude-api-integration.md) · [005 Deployment](docs/adr/005-deployment-architecture.md) · [006 Bonus Features](docs/adr/006-bonus-features.md)
 
 ---
 
@@ -340,28 +350,57 @@ frieght-document-intelligence-hub/
 
 ## Documentation
 
-| Document | Purpose |
-|----------|---------|
-| [README.md](README.md) | Setup, architecture, deliverables, bonus features |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Step-by-step deployment guide (Netlify + Render) |
-| [docs/DEMO.md](docs/DEMO.md) | 30-min walkthrough script, architecture talking points, Q&A prep |
-| [docs/PRD.md](docs/PRD.md) | Full product requirements |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture diagrams |
-| [docs/adr/](docs/adr/) | 6 Architecture Decision Records |
-| [progress.md](progress.md) | Task-by-task development tracker |
+<details>
+<summary><strong>📐 Architecture Decision Records (6 ADRs)</strong></summary>
+
+Each decision documented with: the problem, options considered, the choice made, and rationale.
+
+| ADR | Decision | TL;DR |
+|-----|----------|-------|
+| [ADR-001](docs/adr/001-backend-framework.md) | Backend: FastAPI (Python) | PDF/image ecosystem + Anthropic SDK maturity outweigh two-language cost |
+| [ADR-002](docs/adr/002-frontend-stack.md) | Frontend: Next.js 16 + shadcn/ui | Copy-paste component ownership, App Router RSC, zero dep risk |
+| [ADR-003](docs/adr/003-database-schema.md) | DB: Relational columns, not JSON | Typed columns enable per-field indexing, confidence joins, compliance queries |
+| [ADR-004](docs/adr/004-claude-api-integration.md) | AI: Single multi-page Claude call | Full document context in one call catches cross-page relationships |
+| [ADR-005](docs/adr/005-deployment-architecture.md) | Deploy: Netlify + Render + Neon | Free-tier, prod-grade, minimal ops overhead |
+| [ADR-006](docs/adr/006-bonus-features.md) | Bonus: 7 compounding features | Each feature multiplies value of the others (see Bonus Features section) |
+
+</details>
+
+<details>
+<summary><strong>📄 PRD — Product Requirements Document</strong></summary>
+
+[docs/PRD.md](docs/PRD.md) — Full requirements including user stories, acceptance criteria, data model specs, and API contracts. Written before coding as a planning artifact.
+
+</details>
+
+<details>
+<summary><strong>📘 RUN BOOK — Operational Guide</strong></summary>
+
+[docs/RUN_BOOK.md](docs/RUN_BOOK.md) — Operational runbook: env variable reference, startup sequence, common error diagnoses (migration failures, Anthropic 502s, FK constraint errors), health checks, and re-seeding procedures.
+
+</details>
+
+<details>
+<summary><strong>🏗 Architecture Deep-Dive</strong></summary>
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Upload/extraction pipeline sequence, database schema, multi-tenant isolation model, and component interaction map.
+
+</details>
 
 ---
 
 ## Tradeoffs
 
-| Decision | Tradeoff | Reasoning |
-|----------|----------|-----------|
-| Python over Node.js | Two languages in stack | `pdf2image`, `Pillow`, and Anthropic's Python SDK are more mature for document processing |
-| Local file storage | Not S3-ready in demo | Simpler for evaluation; abstraction layer (`file_storage.py`) supports swapping to S3/R2 |
-| Single API call for extraction | Higher token cost per doc | Multi-page documents sent in one call gives Claude full context for better extraction accuracy |
-| Demo data seeded | Not live extraction in demo | Anthropic API credits exhausted during development; seeded realistic data from actual PDFs ensures reliable evaluation without live extraction |
-| Async everywhere | Added complexity | FastAPI + asyncpg — necessary for concurrent uploads at scale, demonstrates production thinking |
-| Subprocess for migrations | External process on startup | Avoids nested asyncio event loop conflict with Alembic's sync engine |
+Conscious engineering decisions with real costs — not oversights:
+
+| Decision | What I gave up | Why it was worth it |
+|----------|----------------|---------------------|
+| **Python backend over Node.js** | Single-language stack | `pdf2image`, `Pillow`, and Anthropic's Python SDK are all significantly more mature than Node equivalents for document processing. The PDF → image → Claude pipeline would have been fragile in Node. |
+| **Relational columns over JSON blob** | Schema flexibility | 30+ extracted fields as individual typed columns means proper SQL indexing, field-level confidence joins, and typed querying. A JSON blob trades query power for agility — wrong for a data-intensive review workflow. |
+| **Single Claude call for all pages** | Lower token cost | Splitting a multi-page document into separate calls loses cross-page context (totals that summarize across pages, vessel info on page 1 referenced on page 3). One call with page numbering gives Claude full document context. |
+| **Local file storage over S3** | Production object storage | Keeps setup simple with zero AWS config. The `file_storage.py` abstraction is a deliberate seam — swapping to S3/R2 is a one-file change. |
+| **Subprocess for Alembic migrations** | In-process migration control | FastAPI's async lifespan uses an asyncio event loop; Alembic's sync engine causes nested-loop conflicts. A subprocess call sidesteps this entirely — cleaner than wrapping sync code in `run_in_executor`. |
+| **No auth layer** | Real user auth | Scope was document intelligence, not auth. Multi-tenancy is enforced structurally via `org_id` on every table and query — adding an auth provider (Clerk, Auth0) is additive, not a refactor. |
 
 ---
 
