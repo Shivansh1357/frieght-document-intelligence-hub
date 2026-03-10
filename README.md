@@ -127,7 +127,7 @@ The brief asked for **at least one** bonus feature. I built **seven**, chosen be
 
 ### 7. 🧭 Onboarding System
 **Why**: The `corrected_by` audit field is only useful if it captures a real name. A frictionless first-use step ensures every correction is attributable.  
-**What**: Welcome dialog with name capture (piped into all correction records), 4-step guided tour, and persistent user profile with avatar.
+**What**: Welcome dialog with name capture (piped into all correction records), 8-step guided tour, and persistent user profile with avatar.
 
 **Why these seven together?** Confidence scoring tells clerks which fields to review → corrections create ground truth → analytics measures AI accuracy over time → comparison catches cross-document discrepancies → duplicate detection keeps the dataset clean → export pushes data downstream → copilot reduces onboarding time. Each feature makes the others more valuable.
 
@@ -295,26 +295,60 @@ Interactive API docs: [https://frieght-document-intelligence-hub.onrender.com/do
 ```
 frieght-document-intelligence-hub/
 ├── README.md                     # This file
-├── progress.md                   # Development tracker & checklist
+├── CLAUDE.md                     # AI coding agent context & conventions
+├── progress.md                   # Development tracker & deliverable checklist
+├── .gitignore
 ├── docs/
 │   ├── PRD.md                    # Product Requirements Document
-│   ├── ARCHITECTURE.md           # System architecture
-│   ├── DEPLOYMENT.md             # Deployment guide (Netlify + Render)
-│   ├── DEMO.md                   # Demo walkthrough & Q&A prep
-│   └── adr/                      # Architecture Decision Records (6 ADRs)
+│   ├── ARCHITECTURE.md           # System architecture & pipeline diagrams
+│   ├── DEPLOYMENT.md             # Deployment guide (Netlify + Render + Neon)
+│   ├── DEMO.md                   # Demo walkthrough script & Q&A prep
+│   ├── RUN_BOOK.md               # Operational runbook (errors, env vars, health checks)
+│   └── adr/
+│       ├── 001-backend-framework.md
+│       ├── 002-frontend-stack.md
+│       ├── 003-database-schema.md
+│       ├── 004-claude-api-integration.md
+│       ├── 005-deployment-architecture.md
+│       └── 006-bonus-features.md
 ├── backend/                      # FastAPI Python backend
 │   ├── app/
-│   │   ├── main.py               # App factory + lifespan (auto-migrations)
-│   │   ├── api/v1/               # Route handlers
-│   │   ├── services/             # Business logic
-│   │   ├── models/               # SQLAlchemy ORM models
+│   │   ├── main.py               # App factory + lifespan (auto-migrations + org seed)
+│   │   ├── config.py             # Pydantic settings (env vars)
+│   │   ├── dependencies.py       # DbDep, OrgIdDep typed injections
+│   │   ├── api/v1/
+│   │   │   ├── router.py         # Registers all route prefixes
+│   │   │   ├── documents.py      # Upload, CRUD, duplicate-check, reextract
+│   │   │   ├── analytics.py      # Accuracy, corrections, field-breakdown
+│   │   │   ├── comparison.py     # Side-by-side document comparison
+│   │   │   ├── corrections.py    # Field correction endpoints
+│   │   │   ├── copilot.py        # AI copilot chat + streaming (SSE)
+│   │   │   ├── export.py         # CSV export (all docs + per-document)
+│   │   │   ├── extraction.py     # Re-extraction trigger
+│   │   │   └── health.py         # Health check
+│   │   ├── services/
+│   │   │   ├── document_service.py
+│   │   │   ├── extraction_service.py
+│   │   │   ├── correction_service.py
+│   │   │   ├── analytics_service.py
+│   │   │   └── comparison_service.py
+│   │   ├── models/               # SQLAlchemy ORM (organization, document, extracted_data,
+│   │   │   │                     #   line_item, extraction_field, field_correction)
 │   │   ├── schemas/              # Pydantic request/response schemas
-│   │   ├── core/                 # Claude client, PDF processor, prompts
-│   │   └── db/                   # Database sessions & Alembic migrations
+│   │   ├── core/
+│   │   │   ├── claude_client.py  # Claude vision API client (retry, error classification)
+│   │   │   ├── pdf_processor.py  # PDF → images (300 DPI, enhance, orient)
+│   │   │   ├── prompts.py        # Extraction prompt engineering
+│   │   │   └── file_storage.py   # Storage abstraction (local → S3-swappable)
+│   │   └── db/session.py         # Async SQLAlchemy session factory
+│   ├── alembic/                  # Migration scripts
+│   ├── alembic.ini
+│   ├── tests/                    # pytest suite (conftest.py)
+│   ├── seed_demo_data.sql        # Demo data seed script
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── .env.example
-├── frontend/                     # Next.js TypeScript frontend
+├── frontend/                     # Next.js 16 TypeScript frontend
 │   ├── src/
 │   │   ├── app/                  # App Router pages
 │   │   ├── components/           # UI components

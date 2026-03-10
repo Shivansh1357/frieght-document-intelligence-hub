@@ -196,7 +196,7 @@
   - [x] Duplicate detection integrated into upload flow
   - [x] Duplicate alert with view existing / proceed anyway
 - [x] Onboarding Tour
-  - [x] 4-step guided tour (Dashboard, Upload, Analytics, Compare)
+  - [x] 8-step guided tour (Dashboard, Upload, Analytics, Compare)
   - [x] Step indicators with progress dots
   - [x] Skip / Next buttons
   - [x] Auto-triggered after welcome dialog
