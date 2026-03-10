@@ -205,9 +205,11 @@ export default function UploadPage() {
       clearIntervalFor(item.localId);
       // Show extraction warning toast if the API reported a specific failure reason
       if (result?.extraction_warning) {
-        const isCredits = result.extraction_warning.toLowerCase().includes("credit");
+        const isCredits =
+          result.extraction_warning.toLowerCase().includes("credit") ||
+          result.extraction_warning.toLowerCase().includes("usage limit");
         toast.warning(result.extraction_warning, {
-          duration: 10000,
+          duration: 12000,
           action: isCredits
             ? {
                 label: "Add Credits",

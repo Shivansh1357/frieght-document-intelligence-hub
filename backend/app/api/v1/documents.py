@@ -110,30 +110,22 @@ async def upload_document(
         await db.rollback()
         err_str = str(e)
 
-        if "CREDIT_EXHAUSTED" in err_str:
-            extraction_warning = (
-                "Extraction failed: Anthropic API credit balance is too low. "
-                "Please add credits at console.anthropic.com and re-extract this document."
-            )
-        elif "RATE_LIMITED" in err_str:
-            extraction_warning = (
-                "Extraction failed: Anthropic API rate limit reached. "
-                "Please wait a moment and re-extract this document."
-            )
-        elif "AUTH_ERROR" in err_str:
-            extraction_warning = (
-                "Extraction failed: Anthropic API key is invalid or expired. "
-                "Please check your API key in the environment settings."
-            )
-        elif "CONNECTION_ERROR" in err_str or "502" in err_str or "connection error" in err_str.lower():
-            extraction_warning = (
-                "Extraction failed: Could not reach the Anthropic API (connection error / 502). "
-                "The document was saved — please try re-extracting once the API is reachable."
-            )
-        elif "API_ERROR" in err_str or "anthropic" in err_str.lower():
-            extraction_warning = f"Extraction failed: Anthropic API error. The document was saved and can be re-extracted. ({type(e).__name__})"
+        # Structured error codes emitted by ClaudeClient — extract the human-readable detail
+        # Format: "Extraction failed after N attempts: CODE: <detail message>"
+        _PREFIXES = ("CREDIT_EXHAUSTED", "RATE_LIMITED", "AUTH_ERROR", "CONNECTION_ERROR", "API_ERROR")
+        detail: str | None = None
+        for prefix in _PREFIXES:
+            marker = f"{prefix}: "
+            if marker in err_str:
+                detail = err_str[err_str.index(marker) + len(marker):]
+                break
+
+        if detail:
+            # Show the actual error detail from Anthropic/claude_client directly
+            extraction_warning = f"Extraction failed — {detail}"
         else:
-            extraction_warning = f"Extraction failed unexpectedly. The document was saved. ({type(e).__name__})"
+            # Unstructured / unexpected exception
+            extraction_warning = f"Extraction failed unexpectedly ({type(e).__name__}): {err_str[:200]}"
 
         logger.error("Extraction failed for %s: %s", doc_id, err_str[:300])
 
