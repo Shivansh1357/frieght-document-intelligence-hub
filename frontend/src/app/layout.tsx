@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
+import { KeepAlive } from "@/components/providers/keep-alive";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const jetbrainsMono = JetBrains_Mono({
@@ -35,6 +36,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <KeepAlive />
             <AppShell>{children}</AppShell>
             <Toaster />
           </QueryProvider>
