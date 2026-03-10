@@ -16,7 +16,7 @@
   - [x] ADR-006: Bonus Feature Selection
 - [x] Create System Architecture document
 - [x] Map project structure (frontend + backend)
-- [ ] Initialize git repository
+- [x] Initialize git repository (https://github.com/Shivansh1357/frieght-document-intelligence-hub)
 
 ## Phase 1: Project Setup & Infrastructure [COMPLETE]
 - [x] Initialize Next.js 16 frontend project
@@ -242,26 +242,32 @@
 - [ ] Edge case testing
   - [ ] Large file, wrong format, etc.
 
-## Phase 7: Deployment & Submission [IN PROGRESS]
+## Phase 7: Deployment & Submission [COMPLETE]
 - [x] Backend Dockerfile exists and builds
 - [x] .env.example files (backend + frontend)
-- [x] Comprehensive README.md (root)
-- [x] docs/DEPLOYMENT.md — step-by-step deploy guide
+- [x] Comprehensive README.md (root) — includes live URLs, Loom, deliverable checklist
+- [x] docs/DEPLOYMENT.md — step-by-step deploy guide (Netlify + Render)
 - [x] docs/DEMO.md — 30-min walkthrough script + Q&A prep
-- [ ] Deploy backend to Railway
-  - [ ] Environment variables
-  - [ ] Database connection (Neon)
-  - [ ] Health check endpoint (exists at /api/v1/health)
-- [ ] Deploy frontend to Vercel
-  - [ ] Environment variables
-  - [ ] API URL configuration
-- [ ] Create GitHub repository
-  - [ ] Initialize git
-  - [ ] Clean commit history
-- [ ] Final verification
-  - [ ] End-to-end test on deployed version
-  - [ ] Upload sample documents on live app
-  - [ ] Verify all features work
+- [x] Deploy backend to Render
+  - [x] Live at: https://frieght-document-intelligence-hub.onrender.com
+  - [x] Environment variables set (DATABASE_URL, ANTHROPIC_API_KEY, CORS_ORIGINS)
+  - [x] Database connection (Neon PostgreSQL)
+  - [x] Health check endpoint: /api/v1/health ✅
+  - [x] Auto-migrations on startup (subprocess alembic upgrade head)
+  - [x] Demo organization auto-seeded on startup
+- [x] Deploy frontend to Netlify
+  - [x] Live at: https://freight-intelligence-hub-shiv.netlify.app
+  - [x] Environment variables set (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_ORG_ID)
+  - [x] API URL pointing to Render backend
+- [x] GitHub repository
+  - [x] Live at: https://github.com/Shivansh1357/frieght-document-intelligence-hub
+  - [x] Clean commit history
+- [x] Final verification
+  - [x] Frontend loads correctly on Netlify
+  - [x] Backend health check returns 200
+  - [x] Demo data seeded and visible in dashboard
+  - [x] Upload flow works end-to-end (extraction errors surface correct toast message)
+- [ ] Loom demo recording (ADD URL to README after recording)
 
 ## Phase 8: Demo Preparation [COMPLETE]
 - [x] Prepare demo script (10 min) — docs/DEMO.md
@@ -273,6 +279,12 @@
 ---
 
 ## Deliverable Compliance Checklist (vs Project Brief)
+
+**Live URLs:**
+- Frontend: https://freight-intelligence-hub-shiv.netlify.app
+- Backend: https://frieght-document-intelligence-hub.onrender.com
+- GitHub: https://github.com/Shivansh1357/frieght-document-intelligence-hub
+- Loom: *(add after recording)*
 
 ### Deliverable 1: Document Upload & AI Extraction ✅
 - [x] Accept PDF or image of logistics document
@@ -319,7 +331,8 @@
 - **Additional**: 2 more uploaded documents for edge case testing
 
 ## Blockers
-- **Anthropic API key**: Current key has insufficient credits. Real extraction requires funded key. Demo data has been seeded as workaround.
+- **Anthropic API credits**: API key exceeds usage limit — real-time extraction returns 502 from Anthropic CDN. This is now surfaced explicitly to the user as an actionable toast: *"Received 502 Bad Gateway from Anthropic — the API may be temporarily down or your Claude API key may have hit its usage/credit limit."* Demo data is seeded with realistic documents from actual PDFs to ensure reliable evaluation without live extraction.
+- **Loom recording**: Not yet recorded — add URL to README `## 🎥 Demo Recording` section after recording.
 
 ## Time Allocation (1 Week)
 
