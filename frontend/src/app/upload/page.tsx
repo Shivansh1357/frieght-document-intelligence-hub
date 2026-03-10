@@ -12,7 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { Upload as UploadIcon, Eye, Plus, AlertTriangle, CheckCircle, Loader2, X, FileText } from "lucide-react";
+import { Upload as UploadIcon, Eye, Plus, AlertTriangle, CheckCircle, Loader2, X, FileText, FileUp, ScanSearch, Brain, BarChart3 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { PageTransition } from "@/components/layout/page-transition";
 import { stringifyCopilotContext } from "@/lib/copilot-context";
 import { cn } from "@/lib/utils";
@@ -322,7 +323,9 @@ export default function UploadPage() {
                     ) : (
                       <>
                         <UploadIcon className="mr-2 h-4 w-4" />
-                        Upload All
+                        {queue.filter((q) => q.status === "ready" || q.status === "duplicate").length > 1
+                          ? "Upload All"
+                          : "Upload"}
                       </>
                     )}
                   </Button>
@@ -394,27 +397,28 @@ export default function UploadPage() {
                         </div>
                       )}
 
-                      {/* Progress / result */}
+                      {/* Pipeline stages */}
                       {item.status === "uploading" && (
-                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${item.progress}%` }}
-                          />
+                        <div className="mt-3 space-y-2">
+                          <PipelineStages progress={item.progress} />
+                          <Progress value={item.progress} className="h-1.5" />
                         </div>
                       )}
                       {item.status === "done" && item.uploadedDocumentId && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <a
-                            href={`/documents/${item.uploadedDocumentId}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <Button variant="outline" size="sm" className="h-7 text-xs">
-                              <Eye className="mr-1 h-3 w-3" />
-                              View document
-                            </Button>
-                          </a>
+                        <div className="mt-2 space-y-2">
+                          <PipelineStages progress={100} />
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={`/documents/${item.uploadedDocumentId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <Button variant="outline" size="sm" className="h-7 text-xs">
+                                <Eye className="mr-1 h-3 w-3" />
+                                View document
+                              </Button>
+                            </a>
+                          </div>
                         </div>
                       )}
                       {item.status === "error" && item.error && (
@@ -447,7 +451,7 @@ export default function UploadPage() {
         </CardContent>
       </Card>
 
-      {/* Supported documents — only show when queue is empty */}
+      {/* Supported document types — only show when queue is empty */}
       {queue.length === 0 && (
         <div className="grid gap-3 sm:grid-cols-3">
           {[
@@ -485,5 +489,52 @@ export default function UploadPage() {
       )}
     </div>
     </PageTransition>
+  );
+}
+
+const PIPELINE_STAGES = [
+  { key: "upload", label: "Uploading", icon: FileUp, threshold: 0 },
+  { key: "scan", label: "Scanning Document", icon: ScanSearch, threshold: 25 },
+  { key: "extract", label: "AI Extracting", icon: Brain, threshold: 50 },
+  { key: "store", label: "Storing Results", icon: BarChart3, threshold: 80 },
+] as const;
+
+function PipelineStages({ progress }: { progress: number }) {
+  return (
+    <div className="flex items-center gap-1 text-xs">
+      {PIPELINE_STAGES.map((stage, i) => {
+        const isActive = progress >= stage.threshold && (i === PIPELINE_STAGES.length - 1 || progress < PIPELINE_STAGES[i + 1].threshold);
+        const isDone = i < PIPELINE_STAGES.length - 1
+          ? progress >= PIPELINE_STAGES[i + 1].threshold
+          : progress >= 100;
+        const Icon = stage.icon;
+
+        return (
+          <div key={stage.key} className="flex items-center gap-1">
+            {i > 0 && (
+              <div className={cn(
+                "h-px w-3",
+                isDone || isActive ? "bg-primary" : "bg-muted-foreground/20"
+              )} />
+            )}
+            <div className={cn(
+              "flex items-center gap-1 rounded-full px-2 py-0.5 transition-colors",
+              isDone && "text-emerald-600 dark:text-emerald-400",
+              isActive && "text-primary font-medium bg-primary/10",
+              !isDone && !isActive && "text-muted-foreground/50"
+            )}>
+              {isActive ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : isDone ? (
+                <CheckCircle className="h-3 w-3" />
+              ) : (
+                <Icon className="h-3 w-3" />
+              )}
+              <span className="hidden sm:inline">{stage.label}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

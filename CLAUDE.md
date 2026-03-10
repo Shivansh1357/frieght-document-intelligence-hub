@@ -64,10 +64,11 @@ API Routes (app/api/v1/*.py)
 - `/extraction`, `/corrections`, `/health`
 
 **Extraction pipeline** (`app/services/extraction_service.py`):
-1. PDF → images via `pdf2image` (200 DPI, max 1568px) in `app/core/pdf_processor.py`
-2. Images → Claude vision API with structured extraction prompt in `app/core/prompts.py`
-3. Claude client (`app/core/claude_client.py`) with 3-retry logic, JSON parsing
-4. Results stored across three tables: `ExtractedData` (header fields), `LineItem` (line items), `ExtractionField` (per-field confidence scores)
+1. Validate file (empty, corrupt, password-protected PDF detection) in `app/core/pdf_processor.py`
+2. PDF → images via `pdf2image` (300 DPI, max 2048px) with EXIF auto-orient, contrast enhancement (1.2x), sharpening (1.5x), RGB normalization
+3. Images → Claude vision API with domain-specific prompt (document-type guidance, label aliasing, table extraction rules) + page numbering ("Page 1 of N:")
+4. Claude client (`app/core/claude_client.py`) with quality-aware retry (retries with enhanced prompt if <5 fields extracted), exponential backoff, max_tokens=16384
+5. Results stored across three tables: `ExtractedData` (header fields), `LineItem` (line items), `ExtractionField` (per-field confidence scores)
 
 **Document status workflow**: `uploaded → processing → extracted → reviewed → approved`
 
@@ -82,7 +83,7 @@ app/                    # Next.js App Router pages
 components/
   layout/               # AppShell, Sidebar, Header, BackgroundPattern, PageTransition
   documents/            # DocumentTable, StatusBadge, columns
-  extraction/           # ExtractionForm, FieldInput, ConfidenceBadge, LineItemsTable
+  extraction/           # ExtractionForm, FieldInput, ConfidenceBadge, LineItemsTable (editable)
   corrections/          # CorrectionTimeline
   upload/               # Dropzone
   ui/                   # shadcn/ui primitives (24+ components incl. ConfirmDialog)

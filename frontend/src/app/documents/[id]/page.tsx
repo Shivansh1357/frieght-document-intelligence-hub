@@ -329,7 +329,11 @@ export default function DocumentDetailPage({
           </TabsContent>
 
           <TabsContent value="line-items">
-            <LineItemsTable items={extracted.line_items || []} />
+            <LineItemsTable
+              items={extracted.line_items || []}
+              documentId={id}
+              onSaved={handleRefresh}
+            />
           </TabsContent>
 
           <TabsContent value="corrections">

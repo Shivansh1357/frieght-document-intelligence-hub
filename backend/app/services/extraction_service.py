@@ -96,6 +96,13 @@ class ExtractionService:
 
             return extracted_data
 
+        except ValueError as e:
+            # File processing errors (corrupt PDF, password-protected, empty file, etc.)
+            logger.error("File processing failed for document %s: %s", document_id, str(e))
+            if doc:
+                doc.status = "uploaded"
+                await self.db.flush()
+            raise
         except ExtractionError as e:
             logger.error("Extraction failed for document %s: %s", document_id, str(e))
             if doc:

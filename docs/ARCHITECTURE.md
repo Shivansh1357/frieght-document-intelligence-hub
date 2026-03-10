@@ -163,12 +163,19 @@ into dropzone        (type, size)              (multipart/form-data)
                                                       │
                                                       ▼
                                               Extraction Pipeline
-                                              ├── PDF → Images (pdf2image)
-                                              ├── Resize to max 1568px
+                                              ├── Validate file (empty, corrupt, password-protected)
+                                              ├── PDF → Images (pdf2image, 300 DPI)
+                                              ├── Auto-orient via EXIF metadata
+                                              ├── Resize to max 2048px (Claude vision limit)
+                                              ├── Enhance (contrast 1.2x + sharpening 1.5x)
+                                              ├── Force RGB (handle RGBA/CMYK/palette)
                                               ├── Send to Claude Vision API
-                                              │   ├── System prompt (expert analyst)
-                                              │   ├── User prompt (JSON schema)
-                                              │   └── Image(s) attached
+                                              │   ├── System prompt (domain-specific rules)
+                                              │   ├── Page numbering ("Page 1 of 3:")
+                                              │   ├── User prompt (exact JSON schema)
+                                              │   └── Enhanced image(s) attached
+                                              ├── Quality-aware retry (if <5 fields extracted)
+                                              │   └── Enhanced prompt on retry
                                               ├── Parse JSON response
                                               ├── Validate with Pydantic
                                               ├── Store in relational tables:
@@ -184,9 +191,9 @@ into dropzone        (type, size)              (multipart/form-data)
                                                       ▼
                                               Frontend renders:
                                               ├── Editable form (header fields)
-                                              ├── Line items table
-                                              ├── Confidence indicators
-                                              └── PDF preview alongside
+                                              ├── Editable line items (click-to-edit)
+                                              ├── Confidence indicators per field
+                                              └── PDF/image preview alongside
                                                       │
                                               User reviews & corrects
                                                       │
@@ -331,12 +338,26 @@ backend/
 
 1. **File Upload Safety**: Validate MIME types server-side, not just extension
 2. **File Size Limits**: 20MB max, enforced at both frontend and backend
-3. **SQL Injection**: SQLAlchemy parameterized queries (never raw SQL with user input)
-4. **XSS**: React auto-escapes JSX; sanitize any dangerouslySetInnerHTML
-5. **CORS**: Strict origin allowlist (only the Vercel frontend URL)
-6. **API Keys**: Environment variables only, never in client code
-7. **Tenant Isolation**: org_id checked on every query, middleware-enforced
-8. **Rate Limiting**: Protect extraction endpoint from abuse (Claude API cost)
+3. **File Integrity**: Reject 0-byte files, corrupt PDFs, password-protected PDFs with clear error messages
+4. **SQL Injection**: SQLAlchemy parameterized queries (never raw SQL with user input)
+5. **XSS**: React auto-escapes JSX; sanitize any dangerouslySetInnerHTML
+6. **CORS**: Strict origin allowlist (only the Vercel frontend URL)
+7. **API Keys**: Environment variables only, never in client code
+8. **Tenant Isolation**: org_id checked on every query, middleware-enforced
+9. **Rate Limiting**: Protect extraction endpoint from abuse (Claude API cost)
+
+## Edge Case Handling
+
+1. **Corrupt/Invalid PDFs**: Caught at pdf2image level with specific error messages (PDFPageCountError, PDFSyntaxError)
+2. **Password-Protected PDFs**: Detected via error message parsing, returns user-friendly rejection
+3. **Empty Files**: 0-byte check before processing
+4. **Truncated/Corrupt Images**: PIL `img.load()` forces full decode, catches corrupt files early
+5. **EXIF-Rotated Images**: Auto-orient via `ImageOps.exif_transpose()` — critical for phone photos/scans
+6. **RGBA/CMYK/Palette Mode**: Forced RGB conversion before encoding for Claude compatibility
+7. **Low-Quality Extractions**: Quality-aware retry — if <5 fields extracted, retries with enhanced prompt
+8. **Multi-Page Synthesis**: Page numbering ("Page 1 of 3:") helps Claude understand document structure
+9. **Label Aliasing**: Prompt handles Shipper/Exporter/Seller, Consignee/Importer/Buyer equivalence
+10. **Partial Data**: Stored as NULL with low confidence score, UI highlights for human review
 
 ## Performance Strategy
 

@@ -58,6 +58,17 @@ export const api = {
       fetchApi(`/documents/${id}`, { method: "DELETE" }),
     corrections: (id: string) =>
       fetchApi<CorrectionResponse[]>(`/documents/${id}/corrections`),
+    createCorrection: (id: string, data: {
+      field_name: string;
+      corrected_value: string;
+      original_value?: string | null;
+      line_item_id?: string;
+      corrected_by?: string;
+    }) =>
+      fetchApi(`/documents/${id}/corrections`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     checkDuplicate: (hash: string) =>
       fetchApi(`/documents/check-duplicate`, {
         method: "POST",

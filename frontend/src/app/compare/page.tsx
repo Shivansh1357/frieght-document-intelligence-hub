@@ -41,6 +41,7 @@ import {
 import { stringifyCopilotContext } from "@/lib/copilot-context";
 import { PageTransition } from "@/components/layout/page-transition";
 import { ContentSwap } from "@/components/layout/content-swap";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeftRight,
   CheckCircle,
@@ -48,6 +49,7 @@ import {
   FileText,
   AlertTriangle,
   Info,
+  Eye,
 } from "lucide-react";
 
 const COMPARABLE_STATUSES: DocumentStatus[] = [
@@ -108,6 +110,8 @@ export default function ComparePage() {
     id1: string;
     id2: string;
   } | null>(null);
+  const [showPreview1, setShowPreview1] = useState(false);
+  const [showPreview2, setShowPreview2] = useState(false);
 
   const apiBase =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
@@ -244,27 +248,36 @@ export default function ComparePage() {
                     </SelectContent>
                   </Select>
                   {doc1 && (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {toTitleCase(doc1.document_type)}
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {toTitleCase(doc1.status)}
-                      </Badge>
-                      <a
-                        href={`/documents/${doc1.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
-                          View Details
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {toTitleCase(doc1.document_type)}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {toTitleCase(doc1.status)}
+                        </Badge>
+                        <a
+                          href={`/documents/${doc1.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
+                            View Details
+                          </Button>
+                        </a>
+                        <Button
+                          size="sm"
+                          variant={showPreview1 ? "default" : "outline"}
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setShowPreview1(!showPreview1)}
+                        >
+                          <Eye className="mr-1 h-3 w-3" />
+                          {showPreview1 ? "Hide Original" : "View Original"}
                         </Button>
-                      </a>
-                      <a href={fileUrlFor(doc1.id)} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
-                          View Original
-                        </Button>
-                      </a>
+                      </div>
+                      {showPreview1 && (
+                        <InlineDocPreview url={fileUrlFor(doc1.id)} fileName={doc1.file_name} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -305,27 +318,36 @@ export default function ComparePage() {
                     </SelectContent>
                   </Select>
                   {doc2 && (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {toTitleCase(doc2.document_type)}
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {toTitleCase(doc2.status)}
-                      </Badge>
-                      <a
-                        href={`/documents/${doc2.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
-                          View Details
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {toTitleCase(doc2.document_type)}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {toTitleCase(doc2.status)}
+                        </Badge>
+                        <a
+                          href={`/documents/${doc2.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
+                            View Details
+                          </Button>
+                        </a>
+                        <Button
+                          size="sm"
+                          variant={showPreview2 ? "default" : "outline"}
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setShowPreview2(!showPreview2)}
+                        >
+                          <Eye className="mr-1 h-3 w-3" />
+                          {showPreview2 ? "Hide Original" : "View Original"}
                         </Button>
-                      </a>
-                      <a href={fileUrlFor(doc2.id)} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
-                          View Original
-                        </Button>
-                      </a>
+                      </div>
+                      {showPreview2 && (
+                        <InlineDocPreview url={fileUrlFor(doc2.id)} fileName={doc2.file_name} />
+                      )}
                     </div>
                   )}
                 </div>
@@ -452,7 +474,37 @@ export default function ComparePage() {
             </CardContent>
           </Card>
 
-          {/* Field-by-field comparison table */}
+          {/* Comparison views: Extracted Data vs Original Documents */}
+          <Tabs defaultValue="extracted" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="extracted">Extracted Data</TabsTrigger>
+              <TabsTrigger value="originals">
+                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                Original Documents
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="originals">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Side-by-Side Original Documents</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Document 1: {doc1?.file_name}</p>
+                      {doc1Id && <InlineDocPreview url={fileUrlFor(doc1Id)} fileName={doc1?.file_name || ""} height="60vh" />}
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">Document 2: {doc2?.file_name}</p>
+                      {doc2Id && <InlineDocPreview url={fileUrlFor(doc2Id)} fileName={doc2?.file_name || ""} height="60vh" />}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="extracted">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Field Comparison</CardTitle>
@@ -579,10 +631,45 @@ export default function ComparePage() {
               )}
             </CardContent>
           </Card>
+            </TabsContent>
+          </Tabs>
         </div>
         ) : null}
       </ContentSwap>
     </div>
     </PageTransition>
+  );
+}
+
+function InlineDocPreview({
+  url,
+  fileName,
+  height = "40vh",
+}: {
+  url: string;
+  fileName: string;
+  height?: string;
+}) {
+  const isPdf = fileName.toLowerCase().endsWith(".pdf");
+
+  if (isPdf) {
+    return (
+      <iframe
+        src={url}
+        className="w-full rounded-lg border"
+        style={{ height }}
+        title={`Preview of ${fileName}`}
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt={fileName}
+      className="w-full rounded-lg border object-contain"
+      style={{ maxHeight: height }}
+    />
   );
 }
