@@ -137,6 +137,7 @@ class ClaudeClient:
         last_error = None
         best_result = None
         best_field_count = 0
+        saw_502 = False  # Track if any attempt got a 502 from Anthropic
 
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
@@ -212,8 +213,9 @@ class ClaudeClient:
                 # Catch HTML 502 responses (Cloudflare gateway errors)
                 body = str(e)
                 if "502" in body or "bad gateway" in body.lower():
+                    saw_502 = True
                     last_error = e
-                    logger.warning("Anthropic 502 Bad Gateway on attempt %d (API may be down or credits exhausted)", attempt)
+                    logger.warning("Anthropic 502 Bad Gateway on attempt %d (API may be down or usage limit reached)", attempt)
                 else:
                     last_error = e
                     logger.warning("Anthropic API error on attempt %d: %s", attempt, body[:200])
@@ -240,10 +242,10 @@ class ClaudeClient:
 
         # Build a descriptive error message from the last known error
         last_err_str = str(last_error) if last_error else "Unknown error"
-        if "502" in last_err_str or "bad gateway" in last_err_str.lower():
-            detail = "CONNECTION_ERROR: Received 502 Bad Gateway from Anthropic — the API may be down or your API key may have hit its usage limit."
+        if saw_502 or "502" in last_err_str or "bad gateway" in last_err_str.lower():
+            detail = "CONNECTION_ERROR: Received 502 Bad Gateway from Anthropic — the API may be temporarily down or your Claude API key may have hit its usage/credit limit. Check console.anthropic.com."
         elif isinstance(last_error, anthropic.APIConnectionError) or "connection error" in last_err_str.lower():
-            detail = f"CONNECTION_ERROR: Could not reach the Anthropic API. Please check your internet connection and try again."
+            detail = "CONNECTION_ERROR: Could not reach the Anthropic API. The API may be down or your Claude API key may have hit its usage limit. Check console.anthropic.com."
         else:
             detail = f"API_ERROR: {last_err_str[:300]}"
 
