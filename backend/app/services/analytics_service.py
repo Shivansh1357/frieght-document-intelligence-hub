@@ -3,15 +3,22 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from sqlalchemy import select, func, case, distinct
+from sqlalchemy import select, func, case, distinct, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
 from app.models.extracted_data import ExtractedData
 from app.models.extraction_field import ExtractionField
 from app.models.field_correction import FieldCorrection
+from app.models.line_item import LineItem
 
 logger = logging.getLogger(__name__)
+
+# Line item fields to track in analytics
+LINE_ITEM_FIELDS = [
+    "description", "hs_code", "quantity", "unit", "unit_price",
+    "total_amount", "net_weight", "gross_weight", "container_number", "po_number",
+]
 
 
 class AnalyticsService:
@@ -61,14 +68,24 @@ class AnalyticsService:
         )
         fields_corrected = (await self.db.execute(fields_corrected_stmt)).scalar() or 0
 
-        # Total fields extracted
-        total_fields_stmt = select(func.count(ExtractionField.id)).join(
+        # Total header fields extracted
+        header_fields_stmt = select(func.count(ExtractionField.id)).join(
             ExtractedData
         ).where(
             ExtractedData.org_id == org_uuid,
             ExtractionField.created_at >= cutoff,
         )
-        total_fields = (await self.db.execute(total_fields_stmt)).scalar() or 0
+        header_fields = (await self.db.execute(header_fields_stmt)).scalar() or 0
+
+        # Total line item fields extracted (each line item has N trackable fields)
+        line_item_count_stmt = select(func.count(LineItem.id)).where(
+            LineItem.org_id == org_uuid,
+            LineItem.created_at >= cutoff,
+        )
+        line_item_count = (await self.db.execute(line_item_count_stmt)).scalar() or 0
+        line_item_fields = line_item_count * len(LINE_ITEM_FIELDS)
+
+        total_fields = header_fields + line_item_fields
 
         correction_rate = (docs_with_corrections / total_extractions * 100) if total_extractions > 0 else 0.0
 
@@ -93,11 +110,16 @@ class AnalyticsService:
         )
         total = (await self.db.execute(total_stmt)).scalar() or 0
 
-        # Corrections by field
+        # Corrections by field (prefix line item fields to distinguish from header fields)
+        labeled_field = case(
+            (FieldCorrection.line_item_id.isnot(None),
+             literal("line_item.") + FieldCorrection.field_name),
+            else_=FieldCorrection.field_name,
+        )
         by_field_stmt = (
-            select(FieldCorrection.field_name, func.count(FieldCorrection.id))
+            select(labeled_field.label("labeled_field"), func.count(FieldCorrection.id))
             .where(FieldCorrection.org_id == org_uuid, FieldCorrection.corrected_at >= cutoff)
-            .group_by(FieldCorrection.field_name)
+            .group_by(labeled_field)
             .order_by(func.count(FieldCorrection.id).desc())
         )
         by_field = (await self.db.execute(by_field_stmt)).all()
@@ -139,7 +161,7 @@ class AnalyticsService:
         org_uuid = uuid.UUID(org_id)
         cutoff = datetime.utcnow() - timedelta(days=days)
 
-        # Get per-field extraction stats with correction counts
+        # --- Header field stats (from ExtractionField) ---
         fields_stmt = (
             select(
                 ExtractionField.field_name,
@@ -155,8 +177,8 @@ class AnalyticsService:
         )
         fields_result = (await self.db.execute(fields_stmt)).all()
 
-        # Get correction counts per field
-        corrections_stmt = (
+        # Header field correction counts (line_item_id IS NULL)
+        header_corrections_stmt = (
             select(
                 FieldCorrection.field_name,
                 func.count(FieldCorrection.id).label("correction_count"),
@@ -164,18 +186,19 @@ class AnalyticsService:
             .where(
                 FieldCorrection.org_id == org_uuid,
                 FieldCorrection.corrected_at >= cutoff,
+                FieldCorrection.line_item_id.is_(None),
             )
             .group_by(FieldCorrection.field_name)
         )
-        corrections_result = (await self.db.execute(corrections_stmt)).all()
-        correction_map = {row[0]: row[1] for row in corrections_result}
+        header_corrections_result = (await self.db.execute(header_corrections_stmt)).all()
+        header_correction_map = {row[0]: row[1] for row in header_corrections_result}
 
         breakdown = []
         for row in fields_result:
             field_name = row[0]
             total = row[1]
             avg_conf = float(row[2]) if row[2] else None
-            corrections = correction_map.get(field_name, 0)
+            corrections = header_correction_map.get(field_name, 0)
             accuracy = ((total - corrections) / total * 100) if total > 0 else 100.0
 
             breakdown.append({
@@ -185,5 +208,50 @@ class AnalyticsService:
                 "correction_count": corrections,
                 "accuracy_rate": round(accuracy, 2),
             })
+
+        # --- Line item field stats ---
+        # Total line items in period = number of "extractions" per line item field
+        line_item_count_stmt = select(func.count(LineItem.id)).where(
+            LineItem.org_id == org_uuid,
+            LineItem.created_at >= cutoff,
+        )
+        total_line_items = (await self.db.execute(line_item_count_stmt)).scalar() or 0
+
+        if total_line_items > 0:
+            # Average confidence across all line items
+            avg_li_confidence_stmt = select(func.avg(LineItem.confidence)).where(
+                LineItem.org_id == org_uuid,
+                LineItem.created_at >= cutoff,
+            )
+            avg_li_confidence = (await self.db.execute(avg_li_confidence_stmt)).scalar()
+            avg_li_conf = float(avg_li_confidence) if avg_li_confidence else None
+
+            # Line item correction counts by field (line_item_id IS NOT NULL)
+            li_corrections_stmt = (
+                select(
+                    FieldCorrection.field_name,
+                    func.count(FieldCorrection.id).label("correction_count"),
+                )
+                .where(
+                    FieldCorrection.org_id == org_uuid,
+                    FieldCorrection.corrected_at >= cutoff,
+                    FieldCorrection.line_item_id.isnot(None),
+                )
+                .group_by(FieldCorrection.field_name)
+            )
+            li_corrections_result = (await self.db.execute(li_corrections_stmt)).all()
+            li_correction_map = {row[0]: row[1] for row in li_corrections_result}
+
+            for field_name in LINE_ITEM_FIELDS:
+                corrections = li_correction_map.get(field_name, 0)
+                accuracy = ((total_line_items - corrections) / total_line_items * 100) if total_line_items > 0 else 100.0
+
+                breakdown.append({
+                    "field_name": f"line_item.{field_name}",
+                    "total_extractions": total_line_items,
+                    "average_confidence": round(avg_li_conf, 2) if avg_li_conf else None,
+                    "correction_count": corrections,
+                    "accuracy_rate": round(accuracy, 2),
+                })
 
         return sorted(breakdown, key=lambda x: x["accuracy_rate"])

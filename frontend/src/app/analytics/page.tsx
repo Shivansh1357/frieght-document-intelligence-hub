@@ -61,9 +61,12 @@ import { stringifyCopilotContext } from "@/lib/copilot-context";
 import { PageTransition, StaggerContainer, StaggerItem } from "@/components/layout/page-transition";
 
 function formatFieldName(name: string): string {
-  return name
+  const isLineItem = name.startsWith("line_item.");
+  const cleanName = isLineItem ? name.slice("line_item.".length) : name;
+  const formatted = cleanName
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
+  return isLineItem ? `LI: ${formatted}` : formatted;
 }
 
 function getAccuracyBadgeVariant(
