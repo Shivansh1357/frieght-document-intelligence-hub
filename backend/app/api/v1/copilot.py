@@ -147,16 +147,34 @@ async def copilot_chat(
             data=query_data,
         )
 
+    except anthropic.APIStatusError as e:
+        body = str(e)
+        if "credit balance" in body.lower() or "too low" in body.lower():
+            msg = f"⚠️ Extraction failed: Anthropic API credit balance is too low. Please add credits at [console.anthropic.com](https://console.anthropic.com/settings/billing) to restore AI functionality."
+        elif e.status_code == 429:
+            msg = f"⚠️ Anthropic API rate limit reached (HTTP 429). Please wait a moment and try again."
+        elif e.status_code == 401:
+            msg = f"⚠️ Anthropic API key is invalid or expired (HTTP 401). Please check the API key configuration."
+        else:
+            msg = f"⚠️ Anthropic API error (HTTP {e.status_code}): {body[:300]}"
+        logger.error("Copilot Anthropic status error: HTTP %d %s", e.status_code, body[:200])
+        return CopilotResponse(answer=msg, data=None)
+    except anthropic.APIConnectionError as e:
+        msg = f"⚠️ Could not reach the Anthropic API (connection error). Please check your network and try again."
+        logger.error("Copilot connection error: %s", str(e)[:200])
+        return CopilotResponse(answer=msg, data=None)
     except anthropic.APIError as e:
-        logger.error("Copilot Claude API error: %s", str(e))
-        return CopilotResponse(
-            answer="I'm having trouble connecting to the AI service right now. Please try again in a moment.",
-            data=None,
-        )
+        body = str(e)
+        if "502" in body or "bad gateway" in body.lower():
+            msg = f"⚠️ Received 502 Bad Gateway from Anthropic — the API may be down or your API key may have hit its usage limit. Check [console.anthropic.com](https://console.anthropic.com/settings/billing)."
+        else:
+            msg = f"⚠️ Anthropic API error: {body[:300]}"
+        logger.error("Copilot Claude API error: %s", body[:200])
+        return CopilotResponse(answer=msg, data=None)
     except Exception as e:
         logger.error("Copilot unexpected error: %s", str(e))
         return CopilotResponse(
-            answer="Something went wrong. Please try again.",
+            answer=f"⚠️ Something went wrong ({type(e).__name__}): {str(e)[:200]}",
             data=None,
         )
 
@@ -252,17 +270,33 @@ async def copilot_chat_stream(
 
             yield emit({"type": "done"})
 
+        except anthropic.APIStatusError as e:
+            body = str(e)
+            if "credit balance" in body.lower() or "too low" in body.lower():
+                msg = f"⚠️ Anthropic API credit balance is too low. Please add credits at [console.anthropic.com](https://console.anthropic.com/settings/billing) to restore AI functionality."
+            elif e.status_code == 429:
+                msg = f"⚠️ Anthropic API rate limit reached (HTTP 429). Please wait a moment and try again."
+            elif e.status_code == 401:
+                msg = f"⚠️ Anthropic API key is invalid or expired (HTTP 401). Please check the API key configuration."
+            else:
+                msg = f"⚠️ Anthropic API error (HTTP {e.status_code}): {body[:300]}"
+            logger.error("Copilot stream Anthropic status error: HTTP %d %s", e.status_code, body[:200])
+            yield emit({"type": "error", "message": msg})
+        except anthropic.APIConnectionError as e:
+            msg = f"⚠️ Could not reach the Anthropic API (connection error). Please check your network and try again."
+            logger.error("Copilot stream connection error: %s", str(e)[:200])
+            yield emit({"type": "error", "message": msg})
         except anthropic.APIError as e:
-            logger.error("Copilot Claude API error (stream): %s", str(e))
-            yield emit(
-                {
-                    "type": "error",
-                    "message": "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
-                }
-            )
+            body = str(e)
+            if "502" in body or "bad gateway" in body.lower():
+                msg = f"⚠️ Received 502 Bad Gateway from Anthropic — the API may be down or your API key may have hit its usage limit."
+            else:
+                msg = f"⚠️ Anthropic API error: {body[:300]}"
+            logger.error("Copilot Claude API error (stream): %s", body[:200])
+            yield emit({"type": "error", "message": msg})
         except Exception as e:
             logger.error("Copilot unexpected error (stream): %s", str(e))
-            yield emit({"type": "error", "message": "Something went wrong. Please try again."})
+            yield emit({"type": "error", "message": f"⚠️ Something went wrong ({type(e).__name__}): {str(e)[:200]}."})
 
     return StreamingResponse(
         sse(),
