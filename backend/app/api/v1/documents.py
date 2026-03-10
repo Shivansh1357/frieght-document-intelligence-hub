@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from app.config import Settings
 from app.core.file_storage import FileStorage
 from app.dependencies import DbDep, OrgIdDep
-from app.schemas.correction import CorrectionListResponse
+from app.schemas.correction import CorrectionCreate, CorrectionListResponse, CorrectionResponse
 from app.schemas.document import (
     DocumentDetailResponse,
     DocumentListResponse,
@@ -89,27 +89,33 @@ async def upload_document(
     )
     await db.commit()
 
+    # Cache scalar values NOW — after a rollback the ORM object becomes
+    # detached/expired and accessing any attribute on it triggers a sync
+    # lazy-load inside an async context, causing MissingGreenlet.
+    doc_id: uuid.UUID = doc.id
+    doc_file_name: str = doc.file_name
+
     # Run extraction in the same session (now on a fresh transaction)
     try:
         extraction_service = ExtractionService(db)
         await extraction_service.extract_document(
-            document_id=doc.id,
+            document_id=doc_id,
             org_id=org_id,
             file_path=file_path,
             file_mime_type=content_type,
         )
         await db.commit()
     except Exception as e:
-        logger.error("Extraction failed for %s: %s", doc.id, str(e))
+        logger.error("Extraction failed for %s: %s", doc_id, str(e))
         await db.rollback()
 
-    # Re-fetch to get latest status
+    # Re-fetch to get latest status (uses plain uuid, not detached ORM object)
     doc_service2 = DocumentService(db)
-    updated_doc = await doc_service2.get_document(doc.id, org_id)
+    updated_doc = await doc_service2.get_document(doc_id, org_id)
     if not updated_doc:
         return DocumentUploadResponse(
-            id=doc.id,
-            file_name=file.filename or "document",
+            id=doc_id,
+            file_name=doc_file_name,
             document_type="auto",
             status="uploaded",
             uploaded_at=datetime.utcnow(),
@@ -337,6 +343,41 @@ async def get_document_corrections(
         corrections=corrections,
         total=len(corrections),
     )
+
+
+@router.post("/{document_id}/corrections", response_model=CorrectionResponse, status_code=201)
+async def create_correction(
+    document_id: uuid.UUID,
+    correction: CorrectionCreate,
+    db: DbDep,
+    org_id: OrgIdDep,
+):
+    """Create a single field correction for a document or line item.
+
+    Supports both header-level corrections (no line_item_id) and
+    line-item-level corrections (with line_item_id).
+    """
+    doc_service = DocumentService(db)
+    doc = await doc_service.get_document(document_id, org_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    correction_service = CorrectionService(db)
+    try:
+        result = await correction_service.create_correction(
+            document_id=document_id,
+            org_id=org_id,
+            field_name=correction.field_name,
+            corrected_value=correction.corrected_value,
+            original_value=correction.original_value,
+            line_item_id=correction.line_item_id,
+            corrected_by=correction.corrected_by,
+            correction_reason=correction.correction_reason,
+        )
+        await db.commit()
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/{document_id}/reextract", response_model=ExtractionResponse)
