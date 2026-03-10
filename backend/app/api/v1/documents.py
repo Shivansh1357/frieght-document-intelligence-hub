@@ -109,19 +109,33 @@ async def upload_document(
     except Exception as e:
         await db.rollback()
         err_str = str(e)
-        # Anthropic credit exhaustion — HTTP 400 with "credit balance"
-        if "credit balance" in err_str.lower() or "credit" in err_str.lower() and "too low" in err_str.lower():
+
+        if "CREDIT_EXHAUSTED" in err_str:
             extraction_warning = (
-                "AI extraction failed: your Anthropic API credit balance is too low. "
+                "Extraction failed: Anthropic API credit balance is too low. "
                 "Please add credits at console.anthropic.com and re-extract this document."
             )
-            logger.warning("Anthropic credits exhausted for %s", doc_id)
-        elif "anthropic" in err_str.lower() or "api" in err_str.lower():
-            extraction_warning = f"AI extraction failed due to an API error. The document was saved and can be re-extracted later. ({type(e).__name__})"
-            logger.error("Anthropic API error for %s: %s", doc_id, err_str)
+        elif "RATE_LIMITED" in err_str:
+            extraction_warning = (
+                "Extraction failed: Anthropic API rate limit reached. "
+                "Please wait a moment and re-extract this document."
+            )
+        elif "AUTH_ERROR" in err_str:
+            extraction_warning = (
+                "Extraction failed: Anthropic API key is invalid or expired. "
+                "Please check your API key in the environment settings."
+            )
+        elif "CONNECTION_ERROR" in err_str or "502" in err_str or "connection error" in err_str.lower():
+            extraction_warning = (
+                "Extraction failed: Could not reach the Anthropic API (connection error / 502). "
+                "The document was saved — please try re-extracting once the API is reachable."
+            )
+        elif "API_ERROR" in err_str or "anthropic" in err_str.lower():
+            extraction_warning = f"Extraction failed: Anthropic API error. The document was saved and can be re-extracted. ({type(e).__name__})"
         else:
             extraction_warning = f"Extraction failed unexpectedly. The document was saved. ({type(e).__name__})"
-            logger.error("Extraction failed for %s: %s", doc_id, err_str)
+
+        logger.error("Extraction failed for %s: %s", doc_id, err_str[:300])
 
     # Re-fetch to get latest status (uses plain uuid, not detached ORM object)
     doc_service2 = DocumentService(db)

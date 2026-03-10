@@ -192,11 +192,31 @@ class ClaudeClient:
                     attempt,
                     str(e),
                 )
-            except anthropic.APIError as e:
+            except anthropic.APIStatusError as e:
                 last_error = e
-                logger.warning(
-                    "Anthropic API error on attempt %d: %s", attempt, str(e)
-                )
+                # Detect credit exhaustion (HTTP 400 or 403 with specific message)
+                body = str(e)
+                if "credit balance" in body.lower() or ("too low" in body.lower() and "credit" in body.lower()):
+                    raise ExtractionError(f"CREDIT_EXHAUSTED: Your Anthropic API credit balance is too low. Please add credits at console.anthropic.com.")
+                elif e.status_code == 429:
+                    raise ExtractionError(f"RATE_LIMITED: Anthropic API rate limit reached. Please wait and try again. (HTTP {e.status_code})")
+                elif e.status_code == 401:
+                    raise ExtractionError(f"AUTH_ERROR: Anthropic API key is invalid or expired. (HTTP {e.status_code})")
+                else:
+                    last_error = e
+                    logger.warning("Anthropic API status error on attempt %d: HTTP %d %s", attempt, e.status_code, str(e)[:200])
+            except anthropic.APIConnectionError as e:
+                last_error = e
+                logger.warning("Anthropic connection error on attempt %d: %s", attempt, str(e)[:200])
+            except anthropic.APIError as e:
+                # Catch HTML 502 responses (Cloudflare gateway errors)
+                body = str(e)
+                if "502" in body or "bad gateway" in body.lower():
+                    last_error = e
+                    logger.warning("Anthropic 502 Bad Gateway on attempt %d (API may be down or credits exhausted)", attempt)
+                else:
+                    last_error = e
+                    logger.warning("Anthropic API error on attempt %d: %s", attempt, body[:200])
             except Exception as e:
                 last_error = e
                 logger.error(
@@ -218,9 +238,16 @@ class ClaudeClient:
             )
             return best_result
 
-        raise ExtractionError(
-            f"Extraction failed after {self.MAX_RETRIES} attempts: {last_error}"
-        )
+        # Build a descriptive error message from the last known error
+        last_err_str = str(last_error) if last_error else "Unknown error"
+        if "502" in last_err_str or "bad gateway" in last_err_str.lower():
+            detail = "CONNECTION_ERROR: Received 502 Bad Gateway from Anthropic — the API may be down or your API key may have hit its usage limit."
+        elif isinstance(last_error, anthropic.APIConnectionError) or "connection error" in last_err_str.lower():
+            detail = f"CONNECTION_ERROR: Could not reach the Anthropic API. Please check your internet connection and try again."
+        else:
+            detail = f"API_ERROR: {last_err_str[:300]}"
+
+        raise ExtractionError(f"Extraction failed after {self.MAX_RETRIES} attempts: {detail}")
 
 
 class ExtractionError(Exception):
