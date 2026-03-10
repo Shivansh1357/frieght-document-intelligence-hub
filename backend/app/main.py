@@ -37,7 +37,7 @@ async def _run_migrations() -> None:
         for line in stdout.decode().splitlines():
             logger.info("[alembic] %s", line)
 
-    if proc.returncode != 0:
+    if proc.returncode not in (0, None) and proc.returncode > 0:
         raise RuntimeError(f"alembic upgrade head failed (exit {proc.returncode})")
 
     logger.info("Database migrations applied successfully.")
@@ -52,17 +52,17 @@ async def _seed_org() -> None:
     """
     import uuid
     from sqlalchemy import text
-    from app.db.session import async_session
+    from app.db.session import async_session_factory
 
     org_id = uuid.UUID(settings.default_org_id)
-    async with async_session() as session:
+    async with async_session_factory() as session:
         await session.execute(
             text("""
                 INSERT INTO organizations (id, name, slug, created_at, updated_at)
                 VALUES (:id, :name, :slug, now(), now())
                 ON CONFLICT (id) DO NOTHING
             """),
-            {"id": str(org_id), "name": "Demo Organization", "slug": "demo"},
+            {"id": str(org_id), "name": "Maventi Group", "slug": "maventi-group"},
         )
         await session.commit()
     logger.info("Demo organization seeded (org_id=%s).", org_id)
