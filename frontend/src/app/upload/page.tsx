@@ -519,10 +519,10 @@ function PipelineStages({ progress }: { progress: number }) {
   return (
     <div className="flex items-center gap-1 text-xs">
       {PIPELINE_STAGES.map((stage, i) => {
-        const isActive = progress >= stage.threshold && (i === PIPELINE_STAGES.length - 1 || progress < PIPELINE_STAGES[i + 1].threshold);
         const isDone = i < PIPELINE_STAGES.length - 1
           ? progress >= PIPELINE_STAGES[i + 1].threshold
           : progress >= 100;
+        const isActive = !isDone && progress >= stage.threshold && (i === PIPELINE_STAGES.length - 1 || progress < PIPELINE_STAGES[i + 1].threshold);
         const Icon = stage.icon;
 
         return (

@@ -1133,13 +1133,13 @@ export function CopilotWidget() {
                         </div>
                       )}
                       <div
-                        className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
+                        className={`max-w-[85%] rounded-xl px-3 py-2 text-sm overflow-hidden ${
                           msg.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
                         }`}
                       >
-                        <div className={msg.role === "user" ? "whitespace-pre-wrap" : ""}>
+                        <div className={`break-words [overflow-wrap:anywhere] ${msg.role === "user" ? "whitespace-pre-wrap" : ""}`}>
                           {msg.role === "assistant" ? (
                             <div className="relative">
                               <MarkdownMessage content={msg.content} />

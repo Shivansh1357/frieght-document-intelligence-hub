@@ -110,9 +110,6 @@ export default function ComparePage() {
     id1: string;
     id2: string;
   } | null>(null);
-  const [showPreview1, setShowPreview1] = useState(false);
-  const [showPreview2, setShowPreview2] = useState(false);
-
   const apiBase =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
   const orgId =
@@ -265,19 +262,7 @@ export default function ComparePage() {
                             View Details
                           </Button>
                         </a>
-                        <Button
-                          size="sm"
-                          variant={showPreview1 ? "default" : "outline"}
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setShowPreview1(!showPreview1)}
-                        >
-                          <Eye className="mr-1 h-3 w-3" />
-                          {showPreview1 ? "Hide Original" : "View Original"}
-                        </Button>
                       </div>
-                      {showPreview1 && (
-                        <InlineDocPreview url={fileUrlFor(doc1.id)} fileName={doc1.file_name} />
-                      )}
                     </div>
                   )}
                 </div>
@@ -335,19 +320,7 @@ export default function ComparePage() {
                             View Details
                           </Button>
                         </a>
-                        <Button
-                          size="sm"
-                          variant={showPreview2 ? "default" : "outline"}
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setShowPreview2(!showPreview2)}
-                        >
-                          <Eye className="mr-1 h-3 w-3" />
-                          {showPreview2 ? "Hide Original" : "View Original"}
-                        </Button>
                       </div>
-                      {showPreview2 && (
-                        <InlineDocPreview url={fileUrlFor(doc2.id)} fileName={doc2.file_name} />
-                      )}
                     </div>
                   )}
                 </div>
