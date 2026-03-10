@@ -635,6 +635,22 @@ function MarkdownMessage({ content }: { content: string }) {
             {children}
           </pre>
         ),
+        table: ({ children }) => (
+          <div className="mt-2 overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-xs">{children}</table>
+          </div>
+        ),
+        thead: ({ children }) => (
+          <thead className="bg-muted/50 text-left">{children}</thead>
+        ),
+        tbody: ({ children }) => <tbody className="divide-y divide-border">{children}</tbody>,
+        tr: ({ children }) => <tr className="divide-x divide-border">{children}</tr>,
+        th: ({ children }) => (
+          <th className="whitespace-nowrap px-2 py-1.5 font-semibold">{children}</th>
+        ),
+        td: ({ children }) => (
+          <td className="px-2 py-1.5 whitespace-normal break-words max-w-[120px]">{children}</td>
+        ),
         hr: () => <hr className="my-3 border-border" />,
         a: ({ href, children }) => (
           <a
@@ -1133,7 +1149,7 @@ export function CopilotWidget() {
                         </div>
                       )}
                       <div
-                        className={`max-w-[85%] rounded-xl px-3 py-2 text-sm overflow-hidden ${
+                        className={`max-w-[85%] min-w-0 rounded-xl px-3 py-2 text-sm ${
                           msg.role === "user"
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted"
