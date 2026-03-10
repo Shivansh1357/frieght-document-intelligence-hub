@@ -87,10 +87,29 @@ We need to choose a backend framework for the Freight Document Intelligence Hub.
 5. When they scale to Phase 2 (customs filing, tariff calculation), Python's data processing libraries are superior
 6. The Claude API's structured output handling is more natural in Python (dict → Pydantic model)
 
+## Proposed Stack
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| FastAPI | 0.115.13 | REST API framework |
+| Uvicorn | 0.34.0 | ASGI server (with standard extras) |
+| SQLAlchemy | 2.0.40 | Async ORM (with asyncio) |
+| asyncpg | 0.30.0 | PostgreSQL async driver |
+| Alembic | 1.14.1 | Database migrations |
+| Pydantic | 2.11.1 | Data validation schemas |
+| pydantic-settings | 2.7.1 | Configuration management |
+| anthropic | 0.49.0 | Claude API client |
+| pdf2image | 1.17.0 | PDF to image conversion |
+| Pillow | 11.1.0 | Image processing |
+| python-multipart | 0.0.20 | Form file handling |
+| httpx | 0.28.1 | Async HTTP client |
+| python-dotenv | 1.0.1 | Environment loading |
+
 ## Consequences
 
-- Need Docker or virtualenv for Python environment
-- API contract must be well-documented (Swagger handles this)
+- Need virtualenv for Python environment (venv included in repo)
+- API contract auto-documented via Swagger (`/docs` endpoint)
 - CORS configuration needed for Next.js frontend → FastAPI backend
--   
+- Auto-runs Alembic migrations on startup via subprocess (avoids nested event loop)
+- Demo org auto-seeded on first startup
 

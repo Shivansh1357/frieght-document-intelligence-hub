@@ -175,8 +175,8 @@ export default function AnalyticsPage() {
 
   const fieldAccuracyData = (fieldBreakdown ?? []).map((item) => ({
     name: formatFieldName(item.field_name),
-    accuracy_rate: Number(item.accuracy_rate.toFixed(1)),
-    fill: item.accuracy_rate >= 90 ? "var(--color-high)" : item.accuracy_rate >= 70 ? "var(--color-medium)" : "var(--color-low)",
+    accuracy_rate: Number((item.accuracy_rate ?? 0).toFixed(1)),
+    fill: (item.accuracy_rate ?? 0) >= 90 ? "var(--color-high)" : (item.accuracy_rate ?? 0) >= 70 ? "var(--color-medium)" : "var(--color-low)",
   }));
 
   const topCorrectedData = (corrections?.top_corrected_fields ?? []).map(
@@ -245,7 +245,7 @@ export default function AnalyticsPage() {
             /></StaggerItem>
             <StaggerItem><StatCard
               title="Avg Confidence"
-              value={`${accuracy.average_confidence.toFixed(1)}%`}
+              value={accuracy.average_confidence != null ? `${accuracy.average_confidence.toFixed(1)}%` : "N/A"}
               description="Across all extracted fields"
               icon={Target}
               accent="border-l-teal-500"
@@ -254,8 +254,8 @@ export default function AnalyticsPage() {
             /></StaggerItem>
             <StaggerItem><StatCard
               title="Correction Rate"
-              value={`${accuracy.correction_rate.toFixed(1)}%`}
-              description={`${accuracy.documents_with_corrections} documents corrected`}
+              value={accuracy.correction_rate != null ? `${accuracy.correction_rate.toFixed(1)}%` : "0%"}
+              description={`${accuracy.documents_with_corrections ?? 0} documents corrected`}
               icon={AlertTriangle}
               accent="border-l-amber-500"
               iconColor="text-amber-500"
@@ -526,9 +526,9 @@ export default function AnalyticsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge
-                        variant={getAccuracyBadgeVariant(field.accuracy_rate)}
+                        variant={getAccuracyBadgeVariant(field.accuracy_rate ?? 0)}
                       >
-                        {field.accuracy_rate.toFixed(1)}%
+                        {(field.accuracy_rate ?? 0).toFixed(1)}%
                       </Badge>
                     </TableCell>
                   </TableRow>

@@ -4,7 +4,7 @@
 ## Date: 2026-03-08
 
 ## Context
-Deliverable 4 asks for "one feature not described in the brief." We're implementing four to demonstrate product depth and domain understanding. Each is chosen using second-order thinking about what Aulintri's actual users would need.
+Deliverable 4 asks for "one feature not described in the brief." We will implement **six** to demonstrate product depth and domain understanding. Each is chosen using second-order thinking about what Aulintri's actual users would need.
 
 ## Feature Selection
 
@@ -51,21 +51,50 @@ Deliverable 4 asks for "one feature not described in the brief." We're implement
 
 **Why this matters to Aulintri**: Multi-tenant SaaS with real operations teams = guaranteed duplicate uploads. Catching this at upload time prevents downstream data quality issues.
 
-## Prioritization Order
+### Feature 4E: AI Copilot Widget
 
-1. **Confidence Scoring** (highest impact, least effort, integrates with core flow)
-2. **Duplicate Detection** (prevents data quality issues, small implementation surface)
-3. **Accuracy Analytics** (impressive in demo, uses existing correction data)
-4. **Document Comparison** (most complex, highest domain insight, demo wow-factor)
+**First-order thinking**: Let users ask questions about their data.
+**Second-order thinking**: Freight operations teams are non-technical. They need insights ("Which shipper has the most corrections?") but can't write SQL. A natural language interface unlocked by Claude turns the entire database into a queryable assistant. This transforms the tool from a document processor into a freight intelligence platform.
 
-If time is constrained, we ship in this order. Features 1-2 are must-haves, 3-4 are stretch goals.
+**Implementation**:
+- Floating action button (FAB) in the corner of every page
+- Chat interface powered by Claude with streaming SSE responses
+- Can execute read-only SQL queries against the database
+- Page context awareness via `data-copilot-context` attributes
+- Markdown rendering for rich formatted answers
+- Conversation memory within session
+
+**Why this matters to Aulintri**: Natural language data access is the differentiator between a tool and a platform. Operations managers who can ask "What's our correction rate for Haixing Hemco documents?" without leaving the dashboard will champion adoption.
+
+### Feature 4F: CSV Export
+
+**First-order thinking**: Let users download data as spreadsheets.
+**Second-order thinking**: Customs brokers file entries into CBP's ACE system, which accepts structured data imports. Without export, every extracted field must be re-typed. With CSV export, the entire extraction pipeline feeds directly into their filing workflow. This is the bridge between AI extraction and real-world customs operations.
+
+**Implementation**:
+- Bulk export: all documents with header fields + line items as CSV
+- Per-document export: single document's line items as CSV
+- Available via API endpoints (`/api/v1/export/documents/csv` and `/api/v1/export/documents/:id/csv`)
+- Triggered from the dashboard UI with a single click
+
+## Implementation Plan
+
+All 6 features will be built in priority order:
+
+1. **Confidence Scoring** — per-field + overall with circular SVG gauge
+2. **Duplicate Detection** — SHA-256 hash integrated into upload flow
+3. **Accuracy Analytics** — 3 endpoints, Recharts visualizations, color-coded bars
+4. **Document Comparison** — 27 fields, match %, field tooltips
+5. **AI Copilot Widget** — floating chat, streaming SSE, DB query execution
+6. **CSV Export** — bulk + per-document, triggered from dashboard
 
 ## Written Explanation (for submission)
 
-> I chose to implement four complementary features: field-level confidence scoring, smart duplicate detection, extraction accuracy analytics, and document comparison. Together, these form a complete "intelligence layer" around the core extraction engine. Confidence scoring directs human attention to where it matters most — reducing review time by 60-80% for high-confidence documents. Duplicate detection prevents the most common data quality issue in multi-user logistics operations. The accuracy analytics dashboard creates a feedback loop that enables continuous improvement of the AI extraction over time. And the document comparison view addresses a critical logistics workflow: ensuring commercial invoices and packing lists agree before customs filing, where discrepancies cost real money in delays and fines. Each feature was chosen because it solves a problem I observed in the sample documents and would encounter at scale in Aulintri's platform.
+> I chose to implement six complementary features: field-level confidence scoring, smart duplicate detection, extraction accuracy analytics, document comparison, an AI copilot widget, and CSV export. Together, these will form a complete "intelligence layer" around the core extraction engine. Confidence scoring will direct human attention to where it matters most — reducing review time by 60-80% for high-confidence documents. Duplicate detection will prevent the most common data quality issue in multi-user logistics operations. The accuracy analytics dashboard will create a feedback loop that enables continuous improvement of the AI extraction over time. The document comparison view will address a critical logistics workflow: ensuring commercial invoices and packing lists agree before customs filing, where discrepancies cost real money in delays and fines. The AI copilot will transform the platform from a document processor into a freight intelligence hub — operations teams can ask natural language questions about their data without leaving the dashboard. And CSV export will bridge the gap between AI extraction and real-world customs filing workflows, where data needs to flow into CBP's ACE system. Each feature was chosen because it solves a problem I observed in the sample documents and would encounter at scale in Aulintri's platform.
 
 ## Consequences
-- Four features = more surface area to test
-- Need to time-box each feature implementation
-- Accuracy analytics depends on having correction data (seed some for demo)
-- Comparison view is the most complex — may be simplified if time-constrained
+- Six features = more surface area to test and maintain
+- AI Copilot adds Claude API cost per chat interaction (mitigated by read-only queries)
+- Accuracy analytics depends on having correction data (demo org auto-seeded on startup)
+- Copilot DB query execution is read-only (SELECT only) for security
+- CSV export uses streaming for large datasets to avoid memory issues

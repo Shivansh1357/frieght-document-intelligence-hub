@@ -64,7 +64,7 @@ Render auto-detects the `Dockerfile` in the `backend/` directory and builds a Do
    | `DATABASE_URL` | `postgresql+asyncpg://user:pass@host/freight_hub?sslmode=require` |
    | `ANTHROPIC_API_KEY` | `sk-ant-...` |
    | `CLAUDE_MODEL` | `claude-sonnet-4-5-20250929` |
-   | `CORS_ORIGINS` | `["https://your-app.vercel.app"]` |
+   | `CORS_ORIGINS` | `["https://your-site.netlify.app"]` |
    | `DEFAULT_ORG_ID` | `00000000-0000-0000-0000-000000000001` |
    | `UPLOAD_DIR` | `uploads` |
    | `MAX_FILE_SIZE` | `20971520` |
@@ -110,7 +110,7 @@ services:
       - key: CLAUDE_MODEL
         value: claude-sonnet-4-5-20250929
       - key: CORS_ORIGINS
-        value: '["https://your-app.vercel.app"]'
+        value: '["https://your-site.netlify.app"]'
       - key: DEFAULT_ORG_ID
         value: "00000000-0000-0000-0000-000000000001"
       - key: UPLOAD_DIR

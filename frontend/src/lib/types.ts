@@ -142,7 +142,7 @@ export interface CorrectionResponse extends FieldCorrection {}
 export interface AccuracyAnalytics {
   total_documents: number;
   total_extractions: number;
-  average_confidence: number;
+  average_confidence: number | null;
   documents_with_corrections: number;
   correction_rate: number;
   fields_corrected: number;

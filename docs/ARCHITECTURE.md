@@ -67,7 +67,7 @@ We use a **layered architecture** with clear separation of concerns:
 │  ├── DocumentViewer (inline preview + download on demand)│
 │  ├── ConfidenceBadge (field-level indicators)           │
 │  ├── CorrectionTimeline (audit trail)                   │
-│  └── AnalyticsCharts (Recharts/Evil Charts)             │
+│  └── AnalyticsCharts (Recharts)                         │
 └──────────────────────────┬──────────────────────────────┘
                            │ HTTP (fetch / react-query)
                            ▼
@@ -80,6 +80,8 @@ We use a **layered architecture** with clear separation of concerns:
 │  ├── corrections.py   (save corrections, get history)   │
 │  ├── analytics.py     (accuracy metrics, trends)        │
 │  ├── comparison.py    (document comparison)             │
+│  ├── export.py        (CSV export — bulk + per-doc)     │
+│  ├── copilot.py       (AI chat + DB query execution)    │
 │  └── health.py        (health check, readiness)         │
 │                                                         │
 │  Middleware:                                             │
@@ -136,14 +138,10 @@ We use a **layered architecture** with clear separation of concerns:
 │  └── FieldCorrection                                    │
 │                                                         │
 │  Alembic Migrations                                     │
-│  ├── 001_initial_schema.py                              │
-│  ├── 002_add_indexes.py                                 │
-│  └── 003_add_fts.py                                     │
+│  └── 397ac97fd451_initial_schema.py (all 6 tables)     │
 │                                                         │
-│  Repository Pattern:                                    │
-│  ├── document_repo.py                                   │
-│  ├── extraction_repo.py                                 │
-│  └── correction_repo.py                                 │
+│  Session Management:                                    │
+│  └── db/session.py (async engine + session factory)    │
 └─────────────────────────────────────────────────────────┘
 ```
 

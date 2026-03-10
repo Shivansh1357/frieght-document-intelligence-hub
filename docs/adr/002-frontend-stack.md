@@ -10,15 +10,20 @@ The project requires a polished, production-quality dashboard UI. The brief spec
 
 ## Decision: Component Library Stack
 
-### Core Foundation: shadcn/ui
+### Core Foundation: shadcn/ui (v4)
 
-**Why**: Not a traditional component library — it's copy-paste components built on Radix UI primitives. This gives us:
+**Why**: Not a traditional component library — it's copy-paste components built on **@base-ui/react** (headless unstyled primitives from the Base UI team). This gives us:
 
 - Full ownership of components (no version lock-in)
-- Tailwind CSS native (matches their stack)
-- Accessible by default (Radix primitives)
+- Tailwind CSS v4 native (matches their stack)
+- Accessible by default (Base UI primitives)
 - Theming via CSS variables (dark/light mode free)
 - The industry standard for modern Next.js apps
+
+**Important**: shadcn/ui v4 uses `@base-ui/react`, NOT `@radix-ui`. This means:
+- No `asChild` prop — use `render` prop instead (e.g., `render={<span />}`)
+- `Dialog` uses `showCloseButton={false}` to hide close button
+- `DropdownMenuTrigger` / `TooltipTrigger` use `render` prop for custom wrappers
 
 **Components we'll use from shadcn/ui:**
 
@@ -73,23 +78,18 @@ The project requires a polished, production-quality dashboard UI. The brief spec
 - Progress tracking
 - Small bundle size
 
-### Loaders: LDRS (uiball)
-
-**Why**:
-
-- 48 beautiful, lightweight loader components
-- React + web component support
-- Will use for: document processing state, page transitions
-- Specific loaders: `Waveform` for processing, `Ring` for general loading
-
 ### Additional Enhancement Libraries
 
-- `nuqs` — URL state management for search/filter params (shareable URLs)
-- `date-fns` — date formatting and range calculations
-- `lucide-react` — icon library (shadcn/ui default)
-- `next-themes` — dark/light mode
-- `react-pdf` or `@react-pdf-viewer/core` — PDF preview in detail view
-- `cmdk` — command palette for power users
+- `nuqs` 2.8.9 — URL state management for search/filter params (shareable URLs)
+- `date-fns` 4.1.0 — date formatting and range calculations
+- `lucide-react` 0.577.0 — icon library (shadcn/ui default)
+- `next-themes` 0.4.6 — dark/light mode
+- `sonner` 2.0.7 — toast notifications
+- `react-markdown` 10.1.0 — Markdown rendering (used in AI Copilot responses)
+- `zod` 4.3.6 — TypeScript-first schema validation
+- `react-dropzone` 15.0.0 — drag-and-drop file uploads
+- `class-variance-authority` 0.7.1 — CSS class variant generation
+- `clsx` 2.1.1 + `tailwind-merge` 3.5.0 — conditional Tailwind class merging
 
 ### Typography & Fonts
 
@@ -135,10 +135,14 @@ The project requires a polished, production-quality dashboard UI. The brief spec
 3. **Scannable**: Bold numbers, clear hierarchy, consistent alignment
 4. **Fast**: Skeleton loading, optimistic updates, minimal layout shift
 
+## Planned Component Set
+
+We will use 24+ shadcn/ui primitives including: Card, Button, Badge, Tooltip, Dialog, Tabs, Table, Progress, Skeleton, ConfirmDialog, DropdownMenu, Select, Input, Label, Separator, ScrollArea, and more.
+
 ## Consequences
 
 - shadcn/ui components are copied into project (larger codebase but full control)
-- Must maintain consistent theming across all components (simplified by tweakCN)
+- Must maintain consistent theming across all components
 - Framer Motion adds ~30KB to bundle (acceptable for the UX gain)
-- Need to configure Tailwind theme tokens upfront (tweakCN streamlines this process)
-- tweakCN provides a visual workflow for theme adjustments without manual CSS editing
+- Maritime-themed color palette (deep navy primary, teal accents, oklch color space) applied via CSS variables
+- @base-ui/react requires different API patterns than Radix — `render` prop instead of `asChild`

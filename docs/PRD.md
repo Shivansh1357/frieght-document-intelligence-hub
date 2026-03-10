@@ -2,7 +2,7 @@
 
 # Freight Document Intelligence Hub
 
-## Version 1.0 | March 2026
+## Version 1.1 | March 2026
 
 ---
 
@@ -129,7 +129,7 @@ Aulintri's platform needs an intelligent document processing pipeline that autom
 | TC4  | Upload low-quality scan              | Partial extraction with low confidence flags          |
 | TC5  | Upload non-logistics document        | Graceful error: "Document type not recognized"        |
 | TC6  | Upload image (JPG/PNG)               | Same extraction flow as PDF                           |
-| TC7  | Upload file > 10MB                   | Size validation error before upload                   |
+| TC7  | Upload file > 20MB                   | Size validation error before upload                   |
 | TC8  | Upload empty/corrupt PDF             | Error handling with retry option                      |
 | TC9  | Edit extracted field and save        | Correction recorded in audit trail                    |
 | TC10 | Save without editing                 | Original extraction saved as-is, no correction record |
@@ -147,14 +147,13 @@ Aulintri's platform needs an intelligent document processing pipeline that autom
 - `line_items` — Individual commodity lines
 - `extraction_fields` — Field-level extraction with confidence scores
 - `field_corrections` — Audit trail: original vs corrected values
-- `containers` — Container-level data (when applicable)
 
 **Multi-tenancy Strategy:**
 
 - `org_id` on ALL tenant-scoped tables
-- Row-Level Security (RLS) policies at DB level
-- API middleware enforces tenant context
-- Prepared for future: composite indexes on (org_id, ...)
+- API middleware enforces tenant context via `X-Org-Id` header
+- All queries scoped by `org_id` through `OrgIdDep` dependency injection
+- Prepared for future: Row-Level Security (RLS) policies, composite indexes on (org_id, ...)
 
 **Audit Trail Design:**
 
@@ -238,7 +237,7 @@ Aulintri's platform needs an intelligent document processing pipeline that autom
 
 ### Deliverable 4: Bonus Features (Product Instinct)
 
-We will implement **4 standout features** that demonstrate deep domain understanding:
+We will implement **6 standout features** that demonstrate deep domain understanding:
 
 #### Feature 4A: Field-Level Confidence Scoring
 
@@ -271,10 +270,28 @@ This creates a feedback loop for continuous improvement.
 **Problem**: The same document may be uploaded multiple times by different team members, or a revised version uploaded alongside the original.
 **Solution**: On upload, check for potential duplicates by matching:
 
-- Reference/invoice numbers
-- Shipper + consignee + date combinations
-- File hash similarity
-Alert the user with options: "Skip", "Upload as revision", or "Upload anyway".
+- SHA-256 file hash (exact duplicate detection)
+- Alert the user with options: "Skip" or "Upload anyway"
+
+#### Feature 4E: AI Copilot Widget
+
+**Problem**: Users need quick answers about their freight data — "What's the total value of all invoices this month?" or "Which documents have low confidence?" — without navigating through multiple pages.
+**Solution**: A floating AI chat widget (powered by Claude) that:
+
+- Answers natural language questions about the user's document data
+- Can execute read-only SQL queries against the database to surface insights
+- Streams responses via Server-Sent Events (SSE) for real-time feedback
+- Is context-aware of the current page/document being viewed
+- Renders responses in Markdown for rich formatting
+
+#### Feature 4F: CSV Export
+
+**Problem**: Operations teams need to export extracted data into spreadsheets for customs filing, reporting, and integration with legacy systems.
+**Solution**: Two export modes:
+
+- **Bulk export**: Download all documents with header fields + line items as CSV
+- **Per-document export**: Download a single document's line items as CSV
+Both available via API endpoints and triggered from the dashboard UI.
 
 ## 5. Non-Functional Requirements
 
@@ -293,10 +310,14 @@ Alert the user with options: "Skip", "Upload as revision", or "Upload anyway".
 
 ## 6. Out of Scope (v1)
 
-- User authentication/authorization (simplified with single demo user)
+- User authentication/authorization (simplified with localStorage user profile + `X-Org-Id` header)
 - Real-time collaboration
 - Email notifications
 - OCR pre-processing (relying on Claude's native vision)
-- Bill of Lading extraction (mentioned but no samples provided)
 - HTS code suggestion (considered but dropped for time — better as v2)
+- Direct S3/R2 file upload (files go through backend)
+- User management and role-based access control
+
+**Planned for v1 (stretch):**
+- Bill of Lading extraction — will be supported via document type classification and dedicated test documents
 
