@@ -267,7 +267,6 @@
   - [x] Backend health check returns 200
   - [x] Demo data seeded and visible in dashboard
   - [x] Upload flow works end-to-end (extraction errors surface correct toast message)
-- [ ] Loom demo recording (ADD URL to README after recording)
 
 ## Phase 8: Demo Preparation [COMPLETE]
 - [x] Prepare demo script (10 min) — docs/DEMO.md
@@ -284,7 +283,6 @@
 - Frontend: https://freight-intelligence-hub-shiv.netlify.app
 - Backend: https://frieght-document-intelligence-hub.onrender.com
 - GitHub: https://github.com/Shivansh1357/frieght-document-intelligence-hub
-- Loom: *(add after recording)*
 
 ### Deliverable 1: Document Upload & AI Extraction ✅
 - [x] Accept PDF or image of logistics document
@@ -331,8 +329,7 @@
 - **Additional**: 2 more uploaded documents for edge case testing
 
 ## Blockers
-- **Anthropic API credits**: API key exceeds usage limit — real-time extraction returns 502 from Anthropic CDN. This is now surfaced explicitly to the user as an actionable toast: *"Received 502 Bad Gateway from Anthropic — the API may be temporarily down or your Claude API key may have hit its usage/credit limit."* Demo data is seeded with realistic documents from actual PDFs to ensure reliable evaluation without live extraction.
-- **Loom recording**: Not yet recorded — add URL to README `## 🎥 Demo Recording` section after recording.
+- **Anthropic API credits**: API key exceeds usage limit — real-time extraction returns 502 from Anthropic CDN. This is surfaced to the user as an actionable toast with a link to the billing page. Test documents are included in the repo (`/test-documents/`) for evaluation.
 
 ## Time Allocation (1 Week)
 

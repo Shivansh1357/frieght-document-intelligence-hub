@@ -17,22 +17,7 @@ Built as a take-home project for **Aulintri** — Founding Full-Stack Engineer r
 | **API Docs (Swagger)** | [https://frieght-document-intelligence-hub.onrender.com/docs](https://frieght-document-intelligence-hub.onrender.com/docs) |
 | **GitHub Repository** | [https://github.com/Shivansh1357/frieght-document-intelligence-hub](https://github.com/Shivansh1357/frieght-document-intelligence-hub) |
 
-> **Demo note**: The app is pre-seeded with realistic freight documents (invoices, packing lists, bill of lading) so you can explore the full feature set immediately without needing to upload anything. Live AI extraction requires a funded Anthropic API key — upload any freight PDF to trigger it.
-
----
-
-## 🎥 Demo Recording
-
-> 📹 **Loom walkthrough**: *(Add your Loom URL here)*
-
-The recording covers:
-1. Document upload + AI extraction pipeline (live)
-2. Editable review form with confidence scoring
-3. Dashboard search, filter, and bulk CSV export
-4. Analytics page — field accuracy charts and correction trends
-5. Side-by-side document comparison
-6. AI Copilot widget in action
-7. Duplicate detection + audit trail walkthrough
+> **Note**: The app includes sample freight documents you can upload to test the full extraction pipeline. Live AI extraction requires a funded Anthropic API key.
 
 ---
 
@@ -374,7 +359,7 @@ frieght-document-intelligence-hub/
 | Python over Node.js | Two languages in stack | `pdf2image`, `Pillow`, and Anthropic's Python SDK are more mature for document processing |
 | Local file storage | Not S3-ready in demo | Simpler for evaluation; abstraction layer (`file_storage.py`) supports swapping to S3/R2 |
 | Single API call for extraction | Higher token cost per doc | Multi-page documents sent in one call gives Claude full context for better extraction accuracy |
-| Demo data seeded | Not live extraction in demo | Anthropic API credits exhausted; seeded realistic data from actual PDFs ensures reliable demo |
+| Demo data seeded | Not live extraction in demo | Anthropic API credits exhausted during development; seeded realistic data from actual PDFs ensures reliable evaluation without live extraction |
 | Async everywhere | Added complexity | FastAPI + asyncpg — necessary for concurrent uploads at scale, demonstrates production thinking |
 | Subprocess for migrations | External process on startup | Avoids nested asyncio event loop conflict with Alembic's sync engine |
 
