@@ -1,4 +1,5 @@
 import base64
+import gc
 import io
 import logging
 from pathlib import Path
@@ -14,25 +15,29 @@ class PDFProcessor:
     """Handles PDF and image processing for document extraction."""
 
     @staticmethod
-    def pdf_to_images(file_path: str) -> list[Image.Image]:
-        """Convert a PDF file to a list of PIL Images.
+    def _get_pdf_page_count(file_path: str) -> int:
+        """Get total page count from a PDF without loading images."""
+        from pdf2image import pdfinfo_from_path
 
-        Handles password-protected and corrupt PDFs with clear error messages.
+        try:
+            info = pdfinfo_from_path(file_path)
+            return info.get("Pages", 0)
+        except Exception:
+            raise ValueError(
+                "Could not read PDF: the file may be password-protected, "
+                "corrupt, or contain no pages."
+            )
 
-        Args:
-            file_path: Path to the PDF file.
-
-        Returns:
-            List of PIL Image objects, one per page.
-
-        Raises:
-            ValueError: If PDF is empty, corrupt, or password-protected.
-        """
+    @staticmethod
+    def _convert_single_page(file_path: str, page_num: int) -> Image.Image:
+        """Convert a single PDF page to a PIL Image at 300 DPI."""
         from pdf2image import convert_from_path
         from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 
         try:
-            images = convert_from_path(file_path, dpi=300)
+            images = convert_from_path(
+                file_path, dpi=300, first_page=page_num, last_page=page_num
+            )
         except PDFPageCountError:
             raise ValueError(
                 "Could not read PDF: the file may be password-protected, "
@@ -53,12 +58,9 @@ class PDFProcessor:
             raise ValueError(f"Failed to process PDF: {e}")
 
         if not images:
-            raise ValueError(
-                "PDF contains no readable pages. The file may be empty or corrupt."
-            )
+            raise ValueError(f"PDF page {page_num} produced no image.")
 
-        logger.info("Converted PDF to %d page image(s) at 300 DPI", len(images))
-        return images
+        return images[0]
 
     @staticmethod
     def resize_image(image: Image.Image) -> Image.Image:
@@ -137,6 +139,7 @@ class PDFProcessor:
         else:
             image.save(buffer, format=format)
         b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        buffer.close()
         media_type = f"image/{format.lower()}"
         if format.upper() == "JPEG":
             media_type = "image/jpeg"
@@ -167,13 +170,26 @@ class PDFProcessor:
             raise ValueError("File is empty (0 bytes).")
 
         if mime_type == "application/pdf":
-            images = cls.pdf_to_images(file_path)
+            total_pages = cls._get_pdf_page_count(file_path)
+            if total_pages == 0:
+                raise ValueError(
+                    "PDF contains no readable pages. The file may be empty or corrupt."
+                )
+
+            logger.info("Processing %d-page PDF at 300 DPI (page-by-page)", total_pages)
             result = []
-            for img in images:
+            for page_num in range(1, total_pages + 1):
+                # Convert single page — only 1 full-res PIL Image in memory at a time
+                img = cls._convert_single_page(file_path, page_num)
                 resized = cls.resize_image(img)
                 enhanced = cls.enhance_image(resized)
                 b64, mt = cls.image_to_base64(enhanced)
                 result.append((b64, mt))
+
+                # Free PIL images immediately to reclaim memory
+                del img, resized, enhanced
+                gc.collect()
+
             return result
         elif mime_type in ("image/png", "image/jpeg", "image/jpg", "image/webp", "image/tiff"):
             try:
