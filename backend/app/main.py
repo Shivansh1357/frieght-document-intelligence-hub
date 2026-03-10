@@ -1,18 +1,36 @@
+import logging
 from contextlib import asynccontextmanager
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.config import Settings
 
+logger = logging.getLogger(__name__)
 settings = Settings()
+
+
+def _run_migrations() -> None:
+    """Run Alembic migrations programmatically using the live DATABASE_URL."""
+    try:
+        alembic_cfg = Config("alembic.ini")
+        # Override the URL from settings so the env var always wins over alembic.ini
+        alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations applied successfully.")
+    except Exception as e:
+        logger.error("Migration failed: %s", e)
+        raise
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
-    # Startup
+    # Startup — run migrations before accepting requests
+    _run_migrations()
     yield
     # Shutdown
 
