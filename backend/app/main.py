@@ -43,13 +43,39 @@ async def _run_migrations() -> None:
     logger.info("Database migrations applied successfully.")
 
 
+async def _seed_org() -> None:
+    """Ensure the demo organization row exists (idempotent).
+
+    Documents have a FK to organizations, so this must exist before any
+    upload. Uses INSERT ... ON CONFLICT DO NOTHING so it's safe to run
+    on every restart.
+    """
+    import uuid
+    from sqlalchemy import text
+    from app.db.session import async_session
+
+    org_id = uuid.UUID(settings.default_org_id)
+    async with async_session() as session:
+        await session.execute(
+            text("""
+                INSERT INTO organizations (id, name, slug, created_at, updated_at)
+                VALUES (:id, :name, :slug, now(), now())
+                ON CONFLICT (id) DO NOTHING
+            """),
+            {"id": str(org_id), "name": "Demo Organization", "slug": "demo"},
+        )
+        await session.commit()
+    logger.info("Demo organization seeded (org_id=%s).", org_id)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown events."""
-    # Startup — run migrations before accepting requests
     await _run_migrations()
+    await _seed_org()
     yield
     # Shutdown
+
 
 
 app = FastAPI(
