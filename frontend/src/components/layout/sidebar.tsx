@@ -18,6 +18,7 @@ import {
   Sun,
   LogOut,
   UserPen,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -53,6 +54,9 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { toast } from "sonner";
 import type { AvatarStyle } from "@/lib/user-store";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
+const ORG_NAME =
+  process.env.NEXT_PUBLIC_ORG_NAME || "Maventi Group";
 
 const navItems = [
   {
@@ -330,8 +334,9 @@ export function Sidebar({ collapsed, onToggle, expandedWidth }: SidebarProps) {
                       Admin
                     </Badge>
                   </div>
-                  <p className="text-[11px] text-sidebar-foreground/40 truncate">
-                    Freight DIH User
+                  <p className="text-[11px] text-sidebar-foreground/40 truncate flex items-center gap-1">
+                    <Building2 className="h-3 w-3 shrink-0" />
+                    {ORG_NAME}
                   </p>
                 </div>
                 <ChevronUp className="h-4 w-4 shrink-0 text-sidebar-foreground/30" />
@@ -361,7 +366,7 @@ export function Sidebar({ collapsed, onToggle, expandedWidth }: SidebarProps) {
                             Admin
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground font-normal">Freight DIH User</p>
+                        <p className="text-xs text-muted-foreground font-normal">{ORG_NAME}</p>
                       </div>
                     </div>
                   </DropdownMenuLabel>
