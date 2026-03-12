@@ -188,7 +188,7 @@ export const columns: ColumnDef<DocumentSummary>[] = [
       return (
         <Tooltip>
           <TooltipTrigger render={<span className="text-sm text-muted-foreground whitespace-nowrap" />}>
-            {format(date, "MMM d, yyyy")}
+            {format(date, "MMM d, yyyy h:mm a")}
           </TooltipTrigger>
           <TooltipContent>
             {format(date, "MMMM d, yyyy 'at' h:mm a")}

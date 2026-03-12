@@ -465,23 +465,17 @@ export function Sidebar({ collapsed, onToggle, expandedWidth }: SidebarProps) {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="flex justify-center">
-              <Avatar className="h-16 w-16">
-                <AvatarImage
+              <div className="relative h-16 w-16 rounded-full overflow-hidden bg-muted">
+                <img
                   src={getDiceBearUrl(
                     editAvatarStyle,
                     editName || profile?.name || "Admin User",
                     96
                   )}
                   alt={editName || profile?.name || "Admin User"}
+                  className="h-full w-full object-cover"
                 />
-                <AvatarFallback
-                  className={`text-lg font-semibold text-white ${profile?.avatarColor || "bg-gradient-to-br from-violet-500 to-purple-600"}`}
-                >
-                  {editName
-                    ? editName.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
-                    : profile?.initials || "AU"}
-                </AvatarFallback>
-              </Avatar>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile-name">Display Name</Label>

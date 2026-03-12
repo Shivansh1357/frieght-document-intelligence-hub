@@ -35,7 +35,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { columns } from "./document-columns";
 import type { DocumentSummary } from "@/lib/types";
-import { ContentSwap } from "@/components/layout/content-swap";
 
 interface DocumentTableProps {
   data: DocumentSummary[];
@@ -153,10 +152,6 @@ export function DocumentTable({
   const toDate = filterDateTo ? parseISO(filterDateTo) : undefined;
 
   return (
-    <ContentSwap swapKey={isLoading ? "loading" : "loaded"}>
-      {isLoading ? (
-        <DocumentTableSkeleton />
-      ) : (
         <div className="space-y-4">
           {/* Filters + Bulk Actions */}
           <div className="flex flex-col gap-3" data-tour="dashboard-filters">
@@ -303,6 +298,16 @@ export function DocumentTable({
       )}
 
       {/* Table */}
+      {isLoading ? (
+        <div className="rounded-lg border">
+          <div className="space-y-3 p-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="rounded-lg border overflow-x-auto" data-tour="dashboard-table">
         <Table className="w-full">
           <TableHeader>
@@ -423,9 +428,9 @@ export function DocumentTable({
           </div>
         )}
       </div>
-        </div>
+        </>
       )}
-    </ContentSwap>
+        </div>
   );
 }
 
@@ -587,21 +592,3 @@ function DatePicker({
   );
 }
 
-function DocumentTableSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        <Skeleton className="h-10 w-80" />
-        <Skeleton className="h-10 w-40" />
-        <Skeleton className="h-10 w-36" />
-      </div>
-      <div className="rounded-lg border">
-        <div className="space-y-3 p-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}

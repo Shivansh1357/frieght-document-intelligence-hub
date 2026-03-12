@@ -1,16 +1,41 @@
+import json
 import logging
 import os
 import sys
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_router
 from app.config import Settings
 
 logger = logging.getLogger(__name__)
 settings = Settings()
+
+
+class UTCEncoder(json.JSONEncoder):
+    """JSON encoder that treats naive datetimes as UTC and appends 'Z'."""
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            if obj.tzinfo is None:
+                obj = obj.replace(tzinfo=timezone.utc)
+            return obj.isoformat()
+        return super().default(obj)
+
+
+class UTCJSONResponse(JSONResponse):
+    """JSONResponse that serializes naive datetimes as UTC."""
+
+    def render(self, content) -> bytes:
+        return json.dumps(
+            content,
+            cls=UTCEncoder,
+            ensure_ascii=False,
+        ).encode("utf-8")
 
 
 async def _run_migrations() -> None:
@@ -83,6 +108,7 @@ app = FastAPI(
     version="1.0.0",
     description="AI-powered freight document extraction and intelligence platform",
     lifespan=lifespan,
+    default_response_class=UTCJSONResponse,
 )
 
 app.add_middleware(

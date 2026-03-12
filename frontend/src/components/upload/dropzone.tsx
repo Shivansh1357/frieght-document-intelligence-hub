@@ -155,7 +155,7 @@ export function Dropzone({
           {
             icon: Clock,
             title: "Fast Processing",
-            desc: "Results in under 30 seconds",
+            desc: "Automated AI-powered extraction",
             color: "text-blue-500 bg-blue-50 dark:bg-blue-950/50",
           },
         ].map((feature) => (

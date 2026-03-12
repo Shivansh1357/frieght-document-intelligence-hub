@@ -216,7 +216,7 @@ export function UploadProgress({
             className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
           >
             <Brain className="h-3.5 w-3.5" />
-            AI extraction may take 10-30 seconds depending on document complexity
+            AI extraction in progress — time varies by document complexity
           </motion.div>
         )}
       </motion.div>
