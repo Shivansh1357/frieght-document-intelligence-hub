@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dropzone } from "@/components/upload/dropzone";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,7 @@ async function computeFileHash(file: File): Promise<string> {
 
 export default function UploadPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [isUploadingAll, setIsUploadingAll] = useState(false);
   const intervalRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});
@@ -230,6 +232,9 @@ export default function UploadPage() {
             : q
         )
       );
+      // Invalidate so dashboard/analytics reflect new data
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
     } catch (e) {
       clearIntervalFor(item.localId);
       setQueue((prev) =>

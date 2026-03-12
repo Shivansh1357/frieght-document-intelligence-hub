@@ -53,6 +53,7 @@ export function useUpload() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       setState({ progress: 100, isUploading: false, error: null });
     },
     onError: (error: Error) => {

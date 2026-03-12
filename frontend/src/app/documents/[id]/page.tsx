@@ -53,10 +53,17 @@ export default function DocumentDetailPage({
   const [approveOpen, setApproveOpen] = useState(false);
   const [reextractOpen, setReextractOpen] = useState(false);
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["document", id] });
+    queryClient.invalidateQueries({ queryKey: ["documents"] });
+    queryClient.invalidateQueries({ queryKey: ["document-corrections", id] });
+    queryClient.invalidateQueries({ queryKey: ["analytics"] });
+  };
+
   const handleApprove = async () => {
     try {
       await api.documents.update(id, { status: "approved" });
-      queryClient.invalidateQueries({ queryKey: ["document", id] });
+      invalidateAll();
       toast.success("Document approved.");
     } catch {
       toast.error("Failed to approve document.");
@@ -86,7 +93,7 @@ export default function DocumentDetailPage({
   };
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["document", id] });
+    invalidateAll();
   };
 
   if (isLoading) return <DetailSkeleton />;
